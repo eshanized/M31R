@@ -1,0 +1,589 @@
+# ============================================================
+# M31R
+# Data Architecture Specification
+# File: 05_DATA_ARCHITECTURE.md
+# Version: 1.0.0
+# Status: AUTHORITATIVE
+# Owner: Eshan Roy
+# Document Order: 05 / 25
+# Depends On:
+#   01_VISION_PRD.md
+#   02_REQUIREMENTS_SPEC.md
+#   03_GLOSSARY_AND_DEFINITIONS.md
+#   04_SYSTEM_ARCHITECTURE.md
+# ============================================================
+
+
+# ============================================================
+# 0. PURPOSE
+# ============================================================
+
+This document defines the complete data architecture for M31R.
+
+This document answers:
+
+"How is training data sourced, processed, validated, versioned,
+ stored, and consumed?"
+
+This document is authoritative for:
+
+- dataset structure
+- filtering rules
+- data quality standards
+- reproducibility guarantees
+- storage formats
+- reasoning (CoT) injection policy
+
+All training quality depends on this document.
+
+If data quality is poor, the model will fail regardless of architecture.
+
+Therefore:
+
+Data correctness > model complexity.
+
+
+# ============================================================
+# 1. DESIGN PRINCIPLES
+# ============================================================
+
+DA-1
+Data must be deterministic.
+
+DA-2
+Data must be reproducible.
+
+DA-3
+Data must be auditable.
+
+DA-4
+Data must be Rust-only.
+
+DA-5
+Data must be legally clean.
+
+DA-6
+Data must be quality-filtered.
+
+DA-7
+Data must be versioned.
+
+DA-8
+Data must be immutable once produced.
+
+DA-9
+All transformations must be explicit.
+
+DA-10
+Every output must trace back to raw sources.
+
+
+# ============================================================
+# 2. DATA LIFECYCLE OVERVIEW
+# ============================================================
+
+The canonical lifecycle is:
+
+Raw Sources
+    ↓
+Acquisition
+    ↓
+Filtering
+    ↓
+Deduplication
+    ↓
+Normalization
+    ↓
+Reasoning Injection (CoT)
+    ↓
+Tokenization
+    ↓
+Sharding
+    ↓
+Training
+
+Each step produces a new artifact.
+
+No step mutates previous artifacts.
+
+
+# ============================================================
+# 3. DATA CATEGORIES
+# ============================================================
+
+Category A — Raw
+    Unmodified downloads.
+
+Category B — Filtered
+    Syntax/quality validated code.
+
+Category C — Dataset
+    Versioned curated collection.
+
+Category D — Tokenized
+    Integer encoded sequences.
+
+Category E — Shards
+    Packed training blocks.
+
+These categories are strictly sequential.
+
+
+# ============================================================
+# 4. DATA SOURCES
+# ============================================================
+
+Allowed sources:
+
+- public Git repositories
+- crates.io packages
+- Rust standard library
+- official examples
+- permissively licensed code
+
+Disallowed sources:
+
+- proprietary code
+- private repositories
+- unknown license content
+- binaries
+- logs
+- datasets containing personal data
+
+Only source code is allowed.
+
+
+# ============================================================
+# 5. ACQUISITION MODEL
+# ============================================================
+
+Acquisition is deterministic.
+
+Inputs:
+
+- repository list
+- crate list
+- pinned versions
+
+Rules:
+
+- clone at specific commit
+- record commit hash
+- record timestamp
+- record license
+- store raw tarball snapshot
+
+Acquisition must be idempotent.
+
+Running twice must produce identical results.
+
+
+# ============================================================
+# 6. RAW DATA STRUCTURE
+# ============================================================
+
+Directory structure:
+
+data/raw/
+    source_name/
+        repo_name/
+            commit_hash/
+                files
+
+Rules:
+
+- read-only
+- immutable
+- never modified
+- used only for rebuilds
+
+Raw data is not consumed directly by training.
+
+
+# ============================================================
+# 7. FILTERING OBJECTIVES
+# ============================================================
+
+Filtering removes:
+
+- invalid code
+- low-quality code
+- irrelevant content
+- duplicates
+- unsafe licenses
+
+Goal:
+
+Maximize signal-to-noise ratio.
+
+
+# ============================================================
+# 8. SYNTAX VALIDATION
+# ============================================================
+
+All Rust files must:
+
+- parse with AST
+- compile metadata with rustc
+- not contain syntax errors
+
+Files failing validation are rejected.
+
+Reason logged.
+
+
+# ============================================================
+# 9. DIRECTORY EXCLUSIONS
+# ============================================================
+
+Automatically excluded:
+
+- target/
+- vendor/
+- node_modules/
+- build/
+- dist/
+- generated/
+- .git/
+- examples of compiled output
+
+These contain noise or duplicates.
+
+
+# ============================================================
+# 10. FILE EXCLUSIONS
+# ============================================================
+
+Excluded types:
+
+- binaries
+- images
+- archives
+- logs
+- lock files
+- minified code
+- autogenerated bindings
+
+Only .rs files and selected docs allowed.
+
+
+# ============================================================
+# 11. SIZE LIMITS
+# ============================================================
+
+Max file size:
+5 MB
+
+Max lines:
+5000
+
+Reason:
+
+Large files are often generated or low-signal.
+
+
+# ============================================================
+# 12. DEDUPLICATION STRATEGY
+# ============================================================
+
+Two levels:
+
+Exact:
+    hash-based identical removal
+
+Near:
+    simhash/minhash
+
+Goals:
+
+- remove forks
+- remove mirrors
+- remove copied code
+
+Reduces overfitting and bias.
+
+
+# ============================================================
+# 13. NORMALIZATION
+# ============================================================
+
+Normalization includes:
+
+- UTF-8 encoding
+- consistent line endings
+- trimming trailing whitespace
+- formatting stabilization (optional)
+
+No semantic changes allowed.
+
+
+# ============================================================
+# 14. LICENSE FILTERING
+# ============================================================
+
+Allowed:
+
+- MIT
+- Apache-2.0
+- BSD
+- ISC
+- Public domain
+
+Disallowed:
+
+- GPL
+- AGPL
+- unknown
+- proprietary
+
+Files without license metadata are rejected.
+
+
+# ============================================================
+# 15. DATASET VERSIONING
+# ============================================================
+
+Each dataset version has:
+
+- version ID
+- manifest
+- file hashes
+- provenance info
+- creation timestamp
+
+Example:
+
+dataset_v1_2026_01_01/
+
+Datasets are immutable.
+
+Never modified after creation.
+
+
+# ============================================================
+# 16. MANIFEST FORMAT
+# ============================================================
+
+Manifest contains:
+
+- file path
+- source repo
+- commit hash
+- license
+- file hash
+- size
+- filter decisions
+
+Stored as JSON or YAML.
+
+
+# ============================================================
+# 17. REASONING (CoT) INJECTION POLICY
+# ============================================================
+
+CoT is injected after filtering.
+
+Never inject into raw or filtered layers.
+
+Injection types:
+
+- comment reasoning
+- scratchpad blocks
+- hidden reasoning tokens
+
+Goals:
+
+- improve planning
+- improve compilation rate
+- preserve Rust syntax
+
+
+# ============================================================
+# 18. COT GENERATION RULES
+# ============================================================
+
+Generation may use:
+
+- function names
+- AST structure
+- test names
+- control flow analysis
+
+Rules:
+
+- must be short
+- must be Rust-aligned
+- must avoid natural language paragraphs
+- must not alter semantics
+
+
+# ============================================================
+# 19. TOKENIZATION POLICY
+# ============================================================
+
+Tokenizer trained only on filtered corpus.
+
+Rules:
+
+- Rust-only vocab
+- small vocab size
+- minimal fragmentation
+- deterministic seed
+
+
+# ============================================================
+# 20. SHARDING STRATEGY
+# ============================================================
+
+Shards must:
+
+- fixed size
+- sequential packing
+- random shuffle with seed
+- independent
+
+Purpose:
+
+efficient streaming training.
+
+
+# ============================================================
+# 21. STORAGE STRUCTURE
+# ============================================================
+
+data/
+    raw/
+    filtered/
+    datasets/
+    tokenizer/
+    tokenized/
+    shards/
+
+Each folder immutable once created.
+
+
+# ============================================================
+# 22. REPRODUCIBILITY MODEL
+# ============================================================
+
+Rebuilding with same:
+
+- repo list
+- commits
+- configs
+- seeds
+
+Must produce identical:
+
+- datasets
+- shards
+- hashes
+
+If not identical, considered bug.
+
+
+# ============================================================
+# 23. DATA QUALITY METRICS
+# ============================================================
+
+Track:
+
+- total files
+- rejected files
+- duplicate rate
+- compile success
+- token count
+- entropy score
+
+Used to detect regressions.
+
+
+# ============================================================
+# 24. SECURITY RULES
+# ============================================================
+
+Must not:
+
+- execute untrusted code
+- run build scripts
+- fetch dynamically during training
+- store secrets
+
+Data is treated as untrusted input.
+
+
+# ============================================================
+# 25. ANTI-PATTERNS (FORBIDDEN)
+# ============================================================
+
+- mixing raw and filtered
+- mutating datasets
+- training directly from repos
+- using ad-hoc scripts
+- non-versioned corpora
+- hidden filtering logic
+
+
+# ============================================================
+# 26. TRACEABILITY
+# ============================================================
+
+Every token must map to:
+
+file → repo → commit → license
+
+No anonymous tokens allowed.
+
+
+# ============================================================
+# 27. OFFLINE GUARANTEE
+# ============================================================
+
+After acquisition:
+
+All further stages must run without network.
+
+
+# ============================================================
+# 28. BACKUP POLICY
+# ============================================================
+
+Datasets must be:
+
+- archived
+- checksummed
+- restorable
+
+Raw data kept for reproducibility.
+
+
+# ============================================================
+# 29. DATA OWNERSHIP
+# ============================================================
+
+All produced artifacts are:
+
+- locally stored
+- internally owned
+- legally distributable
+
+
+# ============================================================
+# 30. SUMMARY
+# ============================================================
+
+The M31R data architecture ensures:
+
+- high quality
+- Rust specialization
+- legal safety
+- determinism
+- reproducibility
+- auditability
+
+Data quality is the primary lever for model performance.
+
+All future systems MUST respect this pipeline.
+
+# END
+# ============================================================
