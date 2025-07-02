@@ -1,0 +1,14 @@
+# M31R Global Configuration
+# See docs/11_CONFIGURATION_SPEC.md for the full spec.
+
+global:
+  config_version: "1.0.0"
+  project_name: "m31r"
+  seed: 42
+  log_level: "INFO"
+  directories:
+    data: "data"
+    checkpoints: "checkpoints"
+    logs: "logs"
+    experiments: "experiments"
+    configs: "configs"
