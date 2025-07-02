@@ -1,0 +1,58 @@
+# Author : Eshan Roy <eshanized@proton.me>
+# SPDX-License-Identifier: MIT
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "m31r"
+version = "0.1.0"
+description = "Offline-first Rust-focused small language model training and inference platform."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+authors = [
+    {name = "Eshan Roy", email = "eshanized@proton.me"},
+]
+
+dependencies = [
+    "pyyaml==6.0.1",
+    "pydantic==2.6.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.0.0",
+    "pytest-cov==4.1.0",
+    "ruff==0.2.1",
+    "black==24.1.1",
+    "mypy==1.8.0",
+]
+
+[project.scripts]
+m31r = "m31r.cli.main:main"
+
+[tool.setuptools.packages.find]
+include = ["m31r*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
