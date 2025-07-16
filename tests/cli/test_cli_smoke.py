@@ -23,7 +23,7 @@ import pytest
 def _run_cli(*args: str) -> subprocess.CompletedProcess[str]:
     """Run `m31r` with the given arguments and capture output."""
     return subprocess.run(
-        [sys.executable, "-m", "m31r.cli.main", *args],
+        [sys.executable, "-m", "m31r", *args],
         capture_output=True,
         text=True,
         timeout=10,
