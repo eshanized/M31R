@@ -17,17 +17,14 @@ authors = [
 ]
 
 dependencies = [
-    "pyyaml==6.0.1",
-    "pydantic==2.6.1",
+    "pyyaml>=6.0.1",
+    "pydantic>=2.6",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest==8.0.0",
-    "pytest-cov==4.1.0",
-    "ruff==0.2.1",
-    "black==24.1.1",
-    "mypy==1.8.0",
+    "pytest>=8.0",
+    "pytest-cov>=4.1",
 ]
 
 [project.scripts]
