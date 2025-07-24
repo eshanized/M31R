@@ -68,12 +68,107 @@ class GlobalConfig(BaseModel):
     directories: DirectoryConfig = Field(default_factory=DirectoryConfig)
 
 
+class SourceConfig(BaseModel):
+    """
+    A single data source — one Git repository to crawl.
+
+    Each source is pinned to a specific commit so re-running the pipeline always
+    fetches the exact same snapshot. The license field is what we expect to find;
+    it gets verified during the filter stage.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid", validate_default=True)
+
+    name: str = Field(description="Short identifier for this source, used in directory names")
+    url: str = Field(description="Git clone URL for the repository")
+    commit: str = Field(description="Exact commit hash to pin this source to")
+    license: str = Field(
+        default="unknown",
+        description="Expected SPDX license identifier, verified during filtering",
+    )
+
+
+class FilterConfig(BaseModel):
+    """
+    All the knobs that control what gets kept and what gets thrown away
+    during the filter stage. These come straight from the data architecture spec.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid", validate_default=True)
+
+    max_file_size_bytes: int = Field(
+        default=5_242_880,
+        ge=1,
+        description="Files bigger than this get dropped (default 5 MB per spec §11)",
+    )
+    max_lines: int = Field(
+        default=5000,
+        ge=1,
+        description="Files with more lines than this get dropped (per spec §11)",
+    )
+    allowed_extensions: list[str] = Field(
+        default_factory=lambda: [".rs"],
+        description="Only files with these extensions survive filtering",
+    )
+    excluded_directories: list[str] = Field(
+        default_factory=lambda: [
+            "target", "vendor", "node_modules", "build", "dist",
+            "generated", ".git",
+        ],
+        description="Any file inside these directories gets dropped (per spec §9)",
+    )
+    allowed_licenses: list[str] = Field(
+        default_factory=lambda: [
+            "MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause",
+            "ISC", "Unlicense", "CC0-1.0",
+        ],
+        description="Only repos with these SPDX identifiers are kept (per spec §14)",
+    )
+    enable_deduplication: bool = Field(
+        default=True,
+        description="Whether to run exact hash-based deduplication",
+    )
+
+
+class ShardConfig(BaseModel):
+    """Controls how filtered files get packed into fixed-size shards."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid", validate_default=True)
+
+    shard_size_bytes: int = Field(
+        default=268_435_456,
+        ge=1,
+        description="Target size per shard in bytes (default 256 MB)",
+    )
+
+
 class DatasetConfig(BaseModel):
-    """Controls data acquisition, filtering, deduplication. Maps to configs/dataset.yaml."""
+    """
+    Everything the data pipeline needs — sources to crawl, filtering rules,
+    sharding parameters, and where to put the output. Maps to configs/dataset.yaml.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid", validate_default=True)
 
     config_version: str = Field(description="Schema version")
+    sources: list[SourceConfig] = Field(
+        default_factory=list,
+        description="Repositories to crawl — empty list means nothing to crawl",
+    )
+    filter: FilterConfig = Field(default_factory=FilterConfig)
+    shard: ShardConfig = Field(default_factory=ShardConfig)
+    raw_directory: str = Field(
+        default="data/raw",
+        description="Where crawled repos land, relative to project root",
+    )
+    filtered_directory: str = Field(
+        default="data/filtered",
+        description="Where filtered files go, relative to project root",
+    )
+    dataset_directory: str = Field(
+        default="data/datasets",
+        description="Where versioned dataset shards end up, relative to project root",
+    )
 
 
 class TokenizerConfig(BaseModel):

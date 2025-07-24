@@ -17,10 +17,10 @@ htmlcov/
 .ruff_cache/
 
 # M31R artifacts (never committed per 09_REPOSITORY_STRUCTURE.md)
-data/
-checkpoints/
-logs/
-experiments/
+# data/
+# checkpoints/
+# logs/
+# experiments/
 
 # IDE
 .vscode/
