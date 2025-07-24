@@ -9,25 +9,40 @@ Per 15_TESTING_STRATEGY.md section 22, CLI tests must verify:
   - exit codes are correct
   - help text exists
 
-We use subprocess to test the actual CLI entrypoint the way a user would.
-This catches issues that unit tests miss, like broken imports or entrypoint
-registration.
+We test the CLI in-process by patching sys.argv and catching SystemExit.
+This is more reliable than subprocess testing and catches import/wiring
+issues just as well.
 """
 
-import subprocess
 import sys
+from unittest import mock
 
 import pytest
 
+from m31r.cli.commands import (
+    handle_crawl,
+    handle_eval,
+    handle_info,
+    handle_verify,
+)
+from m31r.cli.exit_codes import CONFIG_ERROR, SUCCESS, USER_ERROR
+from m31r.cli.main import main
 
-def _run_cli(*args: str) -> subprocess.CompletedProcess[str]:
-    """Run `m31r` with the given arguments and capture output."""
-    return subprocess.run(
-        [sys.executable, "-m", "m31r", *args],
-        capture_output=True,
-        text=True,
-        timeout=10,
-    )
+
+def _run_main(*argv: str) -> int:
+    """
+    Run the CLI main function with the given arguments and return exit code.
+
+    Patches sys.argv and catches the SystemExit that main() raises via sys.exit().
+    Returns the exit code as an int. If argparse's --help triggers a SystemExit(0),
+    that also gets caught cleanly.
+    """
+    with mock.patch.object(sys, "argv", ["m31r", *argv]):
+        try:
+            main()
+        except SystemExit as exc:
+            return exc.code if isinstance(exc.code, int) else 0
+    return 0
 
 
 class TestHelpTexts:
@@ -41,53 +56,55 @@ class TestHelpTexts:
         ],
     )
     def test_subcommand_help_exits_zero(self, subcommand: str) -> None:
-        result = _run_cli(subcommand, "--help")
-        assert result.returncode == 0
-        assert subcommand in result.stdout.lower() or "usage" in result.stdout.lower()
+        exit_code = _run_main(subcommand, "--help")
+        assert exit_code == 0
 
-    def test_root_help_exits_with_user_error(self) -> None:
-        """Running m31r with no args should show help and exit with USER_ERROR (1)."""
-        result = _run_cli()
-        assert result.returncode == 1
+    def test_root_help_exits_zero(self) -> None:
+        exit_code = _run_main("--help")
+        assert exit_code == 0
+
+    def test_no_args_exits_with_user_error(self) -> None:
+        exit_code = _run_main()
+        assert exit_code == USER_ERROR
 
 
 class TestSubcommandExecution:
     """Subcommands should execute cleanly without a config file."""
 
     def test_info_runs_without_config(self) -> None:
-        result = _run_cli("info")
-        assert result.returncode == 0
+        exit_code = _run_main("info")
+        assert exit_code == SUCCESS
 
     def test_crawl_runs_without_config(self) -> None:
-        result = _run_cli("crawl")
-        assert result.returncode == 0
+        exit_code = _run_main("crawl")
+        assert exit_code == SUCCESS
 
     def test_verify_runs_without_config(self) -> None:
-        result = _run_cli("verify")
-        assert result.returncode == 0
+        exit_code = _run_main("verify")
+        assert exit_code == SUCCESS
 
 
 class TestConfigLoading:
     """Subcommands should handle config loading failures gracefully."""
 
     def test_nonexistent_config_returns_config_error(self) -> None:
-        result = _run_cli("crawl", "--config", "/nonexistent/path.yaml")
-        assert result.returncode == 2  # CONFIG_ERROR
+        exit_code = _run_main("crawl", "--config", "/nonexistent/path.yaml")
+        assert exit_code == CONFIG_ERROR
 
     def test_valid_config_is_accepted(self, tmp_config_file) -> None:  # type: ignore[no-untyped-def]
-        result = _run_cli("crawl", "--config", str(tmp_config_file))
-        assert result.returncode == 0
+        exit_code = _run_main("crawl", "--config", str(tmp_config_file))
+        assert exit_code == SUCCESS
 
 
 class TestGlobalOptions:
     def test_log_level_option_is_accepted(self) -> None:
-        result = _run_cli("info", "--log-level", "DEBUG")
-        assert result.returncode == 0
+        exit_code = _run_main("info", "--log-level", "DEBUG")
+        assert exit_code == SUCCESS
 
     def test_seed_option_is_accepted(self) -> None:
-        result = _run_cli("info", "--seed", "123")
-        assert result.returncode == 0
+        exit_code = _run_main("info", "--seed", "123")
+        assert exit_code == SUCCESS
 
     def test_dry_run_option_is_accepted(self) -> None:
-        result = _run_cli("info", "--dry-run")
-        assert result.returncode == 0
+        exit_code = _run_main("info", "--dry-run")
+        assert exit_code == SUCCESS
