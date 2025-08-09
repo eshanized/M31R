@@ -103,7 +103,17 @@ def _register_subcommands(
 
     for name, help_text, handler in commands:
         parser = subparsers.add_parser(name, parents=[parent], help=help_text)
-        parser.set_defaults(func=handler)
+        parser.set_defaults(func=handler, dataset_dir=None)
+
+    verify_parser = subparsers.choices["verify"]
+    verify_parser.add_argument(
+        "--dataset-dir",
+        type=str,
+        default=None,
+        dest="dataset_dir",
+        help="Path to a dataset directory to verify integrity of.",
+    )
+
 
 
 def main() -> None:
