@@ -77,14 +77,14 @@ def verify_dataset_integrity(dataset_dir: Path) -> bool:
         if actual_hash is None:
             logger.error(
                 "Missing shard file",
-                extra={"filename": filename, "dir": str(dataset_dir)},
+                extra={"shard_filename": filename, "dir": str(dataset_dir)},
             )
             all_valid = False
         elif actual_hash != expected_hash:
             logger.error(
                 "Checksum mismatch",
                 extra={
-                    "filename": filename,
+                    "shard_filename": filename,
                     "expected": expected_hash,
                     "actual": actual_hash,
                 },
