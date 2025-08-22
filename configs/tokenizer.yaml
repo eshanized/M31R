@@ -1,0 +1,33 @@
+# M31R Tokenizer Configuration
+# See docs/11_CONFIGURATION_SPEC.md §8 and docs/06_MODEL_ARCHITECTURE.md §15
+
+global:
+  config_version: "1.0.0"
+  project_name: "m31r"
+  seed: 42
+  log_level: "INFO"
+  directories:
+    data: "data"
+    checkpoints: "checkpoints"
+    logs: "logs"
+    experiments: "experiments"
+    configs: "configs"
+
+tokenizer:
+  config_version: "1.0.0"
+  vocab_size: 16384
+  tokenizer_type: "bpe"
+  seed: 42
+  normalization:
+    nfkc: true
+    lowercase: false
+  special_tokens:
+    - "<pad>"
+    - "<unk>"
+    - "<bos>"
+    - "<eos>"
+  min_frequency: 2
+  max_token_length: 64
+  pre_tokenizer_type: "byte_level"
+  dataset_directory: "data/datasets"
+  output_directory: "data/tokenizer"

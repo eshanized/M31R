@@ -213,9 +213,260 @@ def handle_dataset(args: argparse.Namespace) -> int:
         return RUNTIME_ERROR
 
 
-def handle_tokenizer(args: argparse.Namespace) -> int:
-    """Train or manage the tokenizer."""
-    return _execute_stub(args, "tokenizer")
+def handle_tokenizer_train(args: argparse.Namespace) -> int:
+    """
+    Train a tokenizer from dataset shards and write the artifact bundle.
+
+    This is the most important tokenizer command. It reads the streaming
+    corpus from the dataset shards, trains BPE or Unigram vocabulary
+    (depending on config), computes quality metrics on a sample, and
+    writes the whole package to data/tokenizer/.
+    """
+    exit_code, config, logger = _load_and_bootstrap(args, "tokenizer_train")
+    if exit_code != SUCCESS:
+        return exit_code
+
+    try:
+        if config is None or config.tokenizer is None:
+            logger.error(
+                "Tokenizer config is required for training",
+                extra={"command": "tokenizer_train"},
+            )
+            return CONFIG_ERROR
+
+        logger.info(
+            "Starting tokenizer training",
+            extra={"command": "tokenizer_train", "dry_run": args.dry_run},
+        )
+
+        if args.dry_run:
+            logger.info(
+                "Dry run — would train tokenizer",
+                extra={
+                    "vocab_size": config.tokenizer.vocab_size,
+                    "tokenizer_type": config.tokenizer.tokenizer_type,
+                },
+            )
+            return SUCCESS
+
+        from m31r.tokenizer.artifacts.bundle import create_bundle
+        from m31r.tokenizer.metrics.core import compute_metrics
+        from m31r.tokenizer.streaming.reader import stream_corpus
+        from m31r.tokenizer.trainer.core import train_tokenizer
+
+        project_root = _resolve_project_root()
+        dataset_dir = project_root / config.tokenizer.dataset_directory
+
+        latest_dataset = _find_latest_dataset(dataset_dir)
+        if latest_dataset is None:
+            logger.error(
+                "No dataset shards found — run 'm31r dataset' first",
+                extra={"dataset_dir": str(dataset_dir)},
+            )
+            return VALIDATION_ERROR
+
+        corpus = stream_corpus(latest_dataset)
+        tokenizer = train_tokenizer(config.tokenizer, corpus)
+
+        # Grab a small sample from the corpus for metrics
+        sample_corpus = stream_corpus(latest_dataset)
+        sample_texts = []
+        for i, text in enumerate(sample_corpus):
+            if i >= 500:
+                break
+            sample_texts.append(text)
+
+        if sample_texts:
+            metrics = compute_metrics(tokenizer, sample_texts)
+            logger.info(
+                "Tokenizer quality metrics",
+                extra={
+                    "vocab_size": metrics.vocab_size,
+                    "avg_tokens_per_line": metrics.avg_tokens_per_line,
+                    "unk_rate": metrics.unk_rate,
+                },
+            )
+
+        from m31r.utils.hashing import compute_sha256
+
+        dataset_hash = ""
+        manifest_path = latest_dataset / "manifest.json"
+        if manifest_path.is_file():
+            dataset_hash = compute_sha256(manifest_path)
+
+        result = create_bundle(tokenizer, config.tokenizer, project_root, dataset_hash)
+
+        logger.info(
+            "Tokenizer training complete",
+            extra={
+                "version_hash": result.version_hash,
+                "vocab_size": result.vocab_size,
+                "output_dir": result.output_directory,
+            },
+        )
+        return SUCCESS
+
+    except Exception as err:
+        logger.error("Tokenizer training failed", extra={"error": str(err)}, exc_info=True)
+        return RUNTIME_ERROR
+
+
+def handle_tokenizer_encode(args: argparse.Namespace) -> int:
+    """Encode text into token IDs using a trained tokenizer."""
+    exit_code, config, logger = _load_and_bootstrap(args, "tokenizer_encode")
+    if exit_code != SUCCESS:
+        return exit_code
+
+    try:
+        from tokenizers import Tokenizer
+
+        from m31r.tokenizer.encoder.core import encode
+
+        tokenizer_path = _resolve_tokenizer_path(args, config)
+        if tokenizer_path is None or not tokenizer_path.is_file():
+            logger.error(
+                "No tokenizer.json found — run 'm31r tokenizer train' first",
+                extra={"path": str(tokenizer_path)},
+            )
+            return VALIDATION_ERROR
+
+        tokenizer = Tokenizer.from_file(str(tokenizer_path))
+
+        text = args.text if hasattr(args, "text") and args.text else ""
+        if hasattr(args, "input_file") and args.input_file:
+            text = Path(args.input_file).read_text(encoding="utf-8")
+
+        if not text:
+            logger.error("No text provided — use --text or --input-file")
+            return USER_ERROR
+
+        token_ids = encode(tokenizer, text)
+        logger.info(
+            "Encoding complete",
+            extra={
+                "input_length": len(text),
+                "token_count": len(token_ids),
+                "tokens": token_ids,
+            },
+        )
+        return SUCCESS
+
+    except Exception as err:
+        logger.error("Encoding failed", extra={"error": str(err)}, exc_info=True)
+        return RUNTIME_ERROR
+
+
+def handle_tokenizer_decode(args: argparse.Namespace) -> int:
+    """Decode token IDs back into text using a trained tokenizer."""
+    exit_code, config, logger = _load_and_bootstrap(args, "tokenizer_decode")
+    if exit_code != SUCCESS:
+        return exit_code
+
+    try:
+        from tokenizers import Tokenizer
+
+        from m31r.tokenizer.decoder.core import decode
+
+        tokenizer_path = _resolve_tokenizer_path(args, config)
+        if tokenizer_path is None or not tokenizer_path.is_file():
+            logger.error(
+                "No tokenizer.json found — run 'm31r tokenizer train' first",
+                extra={"path": str(tokenizer_path)},
+            )
+            return VALIDATION_ERROR
+
+        tokenizer = Tokenizer.from_file(str(tokenizer_path))
+
+        if not hasattr(args, "token_ids") or not args.token_ids:
+            logger.error("No token IDs provided — use --ids")
+            return USER_ERROR
+
+        ids = [int(x) for x in args.token_ids.split(",")]
+        text = decode(tokenizer, ids)
+
+        logger.info(
+            "Decoding complete",
+            extra={"token_count": len(ids), "text": text},
+        )
+        return SUCCESS
+
+    except Exception as err:
+        logger.error("Decoding failed", extra={"error": str(err)}, exc_info=True)
+        return RUNTIME_ERROR
+
+
+def handle_tokenizer_info(args: argparse.Namespace) -> int:
+    """Display metadata about an existing tokenizer bundle."""
+    exit_code, config, logger = _load_and_bootstrap(args, "tokenizer_info")
+    if exit_code != SUCCESS:
+        return exit_code
+
+    try:
+        import json
+
+        tokenizer_dir = _resolve_tokenizer_dir(args, config)
+        if tokenizer_dir is None or not tokenizer_dir.is_dir():
+            logger.error("No tokenizer bundle found", extra={"path": str(tokenizer_dir)})
+            return VALIDATION_ERROR
+
+        metadata_path = tokenizer_dir / "metadata.json"
+        if not metadata_path.is_file():
+            logger.error("No metadata.json in tokenizer bundle")
+            return VALIDATION_ERROR
+
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        logger.info("Tokenizer info", extra=metadata)
+        return SUCCESS
+
+    except Exception as err:
+        logger.error("Info command failed", extra={"error": str(err)}, exc_info=True)
+        return RUNTIME_ERROR
+
+
+def _find_latest_dataset(dataset_dir: Path) -> Path | None:
+    """
+    Find the most recently created dataset version directory.
+
+    Dataset versions are subdirectories named by their content hash.
+    We pick the last one alphabetically, which works because we just
+    need any valid dataset — and if there's only one, that's it.
+    """
+    if not dataset_dir.is_dir():
+        return None
+
+    version_dirs = sorted(
+        d for d in dataset_dir.iterdir()
+        if d.is_dir() and not d.name.startswith("_")
+    )
+
+    if not version_dirs:
+        return None
+
+    return version_dirs[-1]
+
+
+def _resolve_tokenizer_path(
+    args: argparse.Namespace,
+    config: M31RConfig | None,
+) -> Path | None:
+    """Figure out where the tokenizer.json file lives."""
+    tokenizer_dir = _resolve_tokenizer_dir(args, config)
+    if tokenizer_dir is None:
+        return None
+    return tokenizer_dir / "tokenizer.json"
+
+
+def _resolve_tokenizer_dir(
+    args: argparse.Namespace,
+    config: M31RConfig | None,
+) -> Path | None:
+    """Figure out the tokenizer bundle directory from config or defaults."""
+    project_root = _resolve_project_root()
+
+    if config is not None and config.tokenizer is not None:
+        return project_root / config.tokenizer.output_directory
+
+    return project_root / "data" / "tokenizer"
 
 
 def handle_train(args: argparse.Namespace) -> int:

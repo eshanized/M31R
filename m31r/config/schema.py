@@ -171,12 +171,75 @@ class DatasetConfig(BaseModel):
     )
 
 
-class TokenizerConfig(BaseModel):
-    """Controls tokenizer training and encoding. Maps to configs/tokenizer.yaml."""
+class NormalizationConfig(BaseModel):
+    """How raw text gets cleaned up before tokenization."""
 
     model_config = ConfigDict(frozen=True, extra="forbid", validate_default=True)
 
-    config_version: str = Field(description="Schema version")
+    nfkc: bool = Field(
+        default=True,
+        description="Apply Unicode NFKC normalization to stabilize character variants",
+    )
+    lowercase: bool = Field(
+        default=False,
+        description="Convert text to lowercase before tokenization (usually off for code)",
+    )
+
+
+class TokenizerConfig(BaseModel):
+    """
+    Everything the tokenizer subsystem needs — training parameters, vocabulary
+    settings, normalization rules, and I/O paths. Maps to configs/tokenizer.yaml.
+
+    The vocab_size target of 16384 comes from the model architecture spec (§15),
+    which recommends 16k–24k for a Rust-specific tokenizer.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid", validate_default=True)
+
+    config_version: str = Field(description="Schema version for compatibility tracking")
+    vocab_size: int = Field(
+        default=16384,
+        ge=256,
+        le=65536,
+        description="Target vocabulary size — 16k is the recommended baseline for Rust code",
+    )
+    tokenizer_type: str = Field(
+        default="bpe",
+        description="Algorithm for vocabulary construction: 'bpe' or 'unigram'",
+    )
+    seed: int = Field(
+        default=42,
+        ge=0,
+        description="Random seed for deterministic training — same seed = same vocab",
+    )
+    normalization: NormalizationConfig = Field(default_factory=NormalizationConfig)
+    special_tokens: list[str] = Field(
+        default_factory=lambda: ["<pad>", "<unk>", "<bos>", "<eos>"],
+        description="Tokens reserved for model control signals, added before training",
+    )
+    min_frequency: int = Field(
+        default=2,
+        ge=1,
+        description="Minimum number of times a token must appear to enter the vocabulary",
+    )
+    max_token_length: int = Field(
+        default=64,
+        ge=1,
+        description="Longest single token allowed in characters — keeps vocab sensible",
+    )
+    pre_tokenizer_type: str = Field(
+        default="byte_level",
+        description="How text gets split before BPE/Unigram: 'byte_level' or 'whitespace'",
+    )
+    dataset_directory: str = Field(
+        default="data/datasets",
+        description="Where to find dataset shards for training, relative to project root",
+    )
+    output_directory: str = Field(
+        default="data/tokenizer",
+        description="Where the finished tokenizer bundle gets written, relative to project root",
+    )
 
 
 class ModelConfig(BaseModel):

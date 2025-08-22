@@ -30,7 +30,10 @@ from m31r.cli.commands import (
     handle_generate,
     handle_info,
     handle_serve,
-    handle_tokenizer,
+    handle_tokenizer_decode,
+    handle_tokenizer_encode,
+    handle_tokenizer_info,
+    handle_tokenizer_train,
     handle_train,
     handle_verify,
 )
@@ -91,7 +94,6 @@ def _register_subcommands(
         ("crawl", "Download raw Rust repositories.", handle_crawl),
         ("filter", "Apply filtering and cleaning to raw data.", handle_filter),
         ("dataset", "Build versioned dataset from filtered data.", handle_dataset),
-        ("tokenizer", "Train or manage the tokenizer.", handle_tokenizer),
         ("train", "Train the model from scratch.", handle_train),
         ("eval", "Run evaluation suite.", handle_eval),
         ("serve", "Start local inference server.", handle_serve),
@@ -114,6 +116,48 @@ def _register_subcommands(
         help="Path to a dataset directory to verify integrity of.",
     )
 
+    _register_tokenizer_subcommands(subparsers, parent)
+
+
+def _register_tokenizer_subcommands(
+    subparsers: argparse._SubParsersAction,  # type: ignore[type-arg]
+    parent: argparse.ArgumentParser,
+) -> None:
+    """
+    Set up the tokenizer subcommand with its own sub-subcommands.
+
+    Instead of a single 'tokenizer' command, we get:
+      m31r tokenizer train   — train a new tokenizer
+      m31r tokenizer encode  — encode text into token IDs
+      m31r tokenizer decode  — decode token IDs into text
+      m31r tokenizer info    — show metadata about the trained tokenizer
+    """
+    tok_parser = subparsers.add_parser(
+        "tokenizer",
+        help="Train or manage the tokenizer.",
+    )
+    tok_subs = tok_parser.add_subparsers(dest="tokenizer_command")
+
+    train_p = tok_subs.add_parser("train", parents=[parent], help="Train a new tokenizer.")
+    train_p.set_defaults(func=handle_tokenizer_train, dataset_dir=None)
+
+    encode_p = tok_subs.add_parser("encode", parents=[parent], help="Encode text into token IDs.")
+    encode_p.add_argument("--text", type=str, default=None, help="Text to encode.")
+    encode_p.add_argument(
+        "--input-file", type=str, default=None, dest="input_file",
+        help="Path to a text file to encode.",
+    )
+    encode_p.set_defaults(func=handle_tokenizer_encode, dataset_dir=None)
+
+    decode_p = tok_subs.add_parser("decode", parents=[parent], help="Decode token IDs into text.")
+    decode_p.add_argument(
+        "--ids", type=str, default=None, dest="token_ids",
+        help="Comma-separated token IDs to decode.",
+    )
+    decode_p.set_defaults(func=handle_tokenizer_decode, dataset_dir=None)
+
+    info_p = tok_subs.add_parser("info", parents=[parent], help="Show tokenizer metadata.")
+    info_p.set_defaults(func=handle_tokenizer_info, dataset_dir=None)
 
 
 def main() -> None:
