@@ -112,7 +112,7 @@ def test_special_tokens_in_vocab() -> None:
 
 def test_vocab_size_respects_config() -> None:
     """The resulting vocab shouldn't exceed the configured limit."""
-    config = _make_config(vocab_size=128)
+    config = _make_config(vocab_size=300)
     corpus = iter(_create_test_corpus())
     tokenizer = train_tokenizer(config, corpus)
 

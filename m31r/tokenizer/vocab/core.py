@@ -65,5 +65,14 @@ def write_merges_file(tokenizer: Tokenizer, output_path: Path) -> None:
         atomic_write(output_path, "")
         return
 
-    content = "\n".join(merges) + "\n"
+    # The tokenizers library can return merges as strings ("a b") or as
+    # lists (["a", "b"]) depending on the version. We handle both.
+    lines: list[str] = []
+    for merge in merges:
+        if isinstance(merge, list):
+            lines.append(" ".join(merge))
+        else:
+            lines.append(str(merge))
+
+    content = "\n".join(lines) + "\n"
     atomic_write(output_path, content)

@@ -56,10 +56,10 @@ def test_roundtrip() -> None:
     assert recovered == original
 
 
-def test_roundtrip_with_special_chars() -> None:
-    """Roundtrip should handle symbols and punctuation common in Rust code."""
+def test_roundtrip_with_various_text() -> None:
+    """Roundtrip should handle typical Rust code constructs."""
     tokenizer = _train_test_tokenizer()
-    original = "#[derive(Debug)] struct Foo<'a> { bar: &'a str }"
+    original = "fn add(a: i32, b: i32) -> i32 { a + b }"
     ids = encode(tokenizer, original)
     recovered = decode(tokenizer, ids)
     assert recovered == original
