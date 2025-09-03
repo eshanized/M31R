@@ -243,19 +243,152 @@ class TokenizerConfig(BaseModel):
 
 
 class ModelConfig(BaseModel):
-    """Neural architecture definitions. Maps to configs/model.yaml."""
+    """
+    Neural architecture definitions. Maps to configs/model.yaml.
+    Per 06_MODEL_ARCHITECTURE.md §13, default is the Medium config (~200M params).
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid", validate_default=True)
 
     config_version: str = Field(description="Schema version")
+    n_layers: int = Field(
+        default=18,
+        ge=1,
+        le=96,
+        description="Number of transformer blocks (spec default: 18-24)",
+    )
+    hidden_size: int = Field(
+        default=1024,
+        ge=64,
+        description="Model hidden dimension (spec default: 1024)",
+    )
+    n_heads: int = Field(
+        default=16,
+        ge=1,
+        description="Number of attention heads (spec default: 16)",
+    )
+    head_dim: int = Field(
+        default=64,
+        ge=1,
+        description="Dimension per attention head (spec default: 64)",
+    )
+    context_length: int = Field(
+        default=2048,
+        ge=128,
+        description="Maximum sequence length (spec minimum: 2048)",
+    )
+    dropout: float = Field(
+        default=0.1,
+        ge=0.0,
+        le=1.0,
+        description="Dropout probability for attention and FFN (light per spec §22)",
+    )
+    norm_eps: float = Field(
+        default=1e-6,
+        gt=0.0,
+        description="Epsilon for RMSNorm numerical stability",
+    )
+    rope_theta: float = Field(
+        default=10000.0,
+        gt=0.0,
+        description="Base frequency for Rotary Positional Embedding",
+    )
+    init_std: float = Field(
+        default=0.02,
+        gt=0.0,
+        description="Standard deviation for weight initialization",
+    )
+    vocab_size: int = Field(
+        default=16384,
+        ge=256,
+        le=65536,
+        description="Vocabulary size (must match tokenizer, default 16k per spec §15)",
+    )
 
 
 class TrainConfig(BaseModel):
-    """Training hyperparameters and schedule. Maps to configs/train.yaml."""
+    """
+    Training hyperparameters and schedule. Maps to configs/train.yaml.
+    Per 07_TRAINING_ARCHITECTURE.md.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid", validate_default=True)
 
     config_version: str = Field(description="Schema version")
+    batch_size: int = Field(
+        default=8,
+        ge=1,
+        description="Micro-batch size (number of sequences per step)",
+    )
+    gradient_accumulation_steps: int = Field(
+        default=4,
+        ge=1,
+        description="Number of micro-batches before optimizer step (simulates larger batch)",
+    )
+    max_steps: int = Field(
+        default=100000,
+        ge=1,
+        description="Total number of optimizer steps for the training run",
+    )
+    learning_rate: float = Field(
+        default=3e-4,
+        gt=0.0,
+        description="Peak learning rate for AdamW optimizer",
+    )
+    min_learning_rate: float = Field(
+        default=1e-5,
+        ge=0.0,
+        description="Minimum learning rate at the end of cosine decay",
+    )
+    weight_decay: float = Field(
+        default=0.1,
+        ge=0.0,
+        description="L2 weight decay for AdamW (per spec §10)",
+    )
+    beta1: float = Field(
+        default=0.9,
+        ge=0.0,
+        lt=1.0,
+        description="AdamW beta1 (first moment decay)",
+    )
+    beta2: float = Field(
+        default=0.95,
+        ge=0.0,
+        lt=1.0,
+        description="AdamW beta2 (second moment decay)",
+    )
+    grad_clip: float = Field(
+        default=1.0,
+        gt=0.0,
+        description="Maximum gradient norm for gradient clipping (per spec §22)",
+    )
+    warmup_steps: int = Field(
+        default=1000,
+        ge=0,
+        description="Number of linear warmup steps before cosine decay (per spec §11)",
+    )
+    precision: str = Field(
+        default="bf16",
+        description="Training precision: 'bf16', 'fp16', or 'fp32' (per spec §13)",
+    )
+    checkpoint_interval: int = Field(
+        default=1000,
+        ge=1,
+        description="Save checkpoint every N optimizer steps (per spec §16)",
+    )
+    log_interval: int = Field(
+        default=10,
+        ge=1,
+        description="Log training metrics every N steps",
+    )
+    dataset_directory: str = Field(
+        default="data/datasets",
+        description="Path to dataset shards directory, relative to project root",
+    )
+    tokenizer_directory: str = Field(
+        default="data/tokenizer",
+        description="Path to tokenizer bundle directory, relative to project root",
+    )
 
 
 class EvalConfig(BaseModel):
