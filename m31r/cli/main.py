@@ -29,6 +29,7 @@ from m31r.cli.commands import (
     handle_filter,
     handle_generate,
     handle_info,
+    handle_resume,
     handle_serve,
     handle_tokenizer_decode,
     handle_tokenizer_encode,
@@ -95,6 +96,7 @@ def _register_subcommands(
         ("filter", "Apply filtering and cleaning to raw data.", handle_filter),
         ("dataset", "Build versioned dataset from filtered data.", handle_dataset),
         ("train", "Train the model from scratch.", handle_train),
+        ("resume", "Resume training from a checkpoint.", handle_resume),
         ("eval", "Run evaluation suite.", handle_eval),
         ("serve", "Start local inference server.", handle_serve),
         ("generate", "Generate tokens from a prompt.", handle_generate),
@@ -114,6 +116,33 @@ def _register_subcommands(
         default=None,
         dest="dataset_dir",
         help="Path to a dataset directory to verify integrity of.",
+    )
+
+    # Resume command args
+    resume_parser = subparsers.choices["resume"]
+    resume_parser.add_argument(
+        "--run-id",
+        type=str,
+        default=None,
+        dest="run_id",
+        help="Experiment run ID to resume. If omitted, resumes the latest.",
+    )
+
+    # Export command args
+    export_parser = subparsers.choices["export"]
+    export_parser.add_argument(
+        "--run-id",
+        type=str,
+        default=None,
+        dest="run_id",
+        help="Experiment run ID to export from. If omitted, exports the latest.",
+    )
+    export_parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=None,
+        dest="output_dir",
+        help="Directory to write the export bundle to.",
     )
 
     _register_tokenizer_subcommands(subparsers, parent)

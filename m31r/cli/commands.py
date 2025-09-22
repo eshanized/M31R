@@ -15,7 +15,7 @@ import argparse
 import logging
 from pathlib import Path
 
-from m31r.cli.exit_codes import CONFIG_ERROR, RUNTIME_ERROR, SUCCESS, VALIDATION_ERROR
+from m31r.cli.exit_codes import CONFIG_ERROR, RUNTIME_ERROR, SUCCESS, USER_ERROR, VALIDATION_ERROR
 from m31r.config.exceptions import ConfigError
 from m31r.config.loader import load_config
 from m31r.config.schema import M31RConfig
@@ -471,7 +471,130 @@ def _resolve_tokenizer_dir(
 
 def handle_train(args: argparse.Namespace) -> int:
     """Train the model from scratch."""
-    return _execute_stub(args, "train")
+    exit_code, config, logger = _load_and_bootstrap(args, "train")
+    if exit_code != SUCCESS:
+        return exit_code
+
+    try:
+        if config is None or config.model is None or config.train is None:
+            logger.error(
+                "Model and training config sections are required",
+                extra={"command": "train"},
+            )
+            return CONFIG_ERROR
+
+        logger.info(
+            "Starting training",
+            extra={"command": "train", "dry_run": args.dry_run},
+        )
+
+        if args.dry_run:
+            logger.info(
+                "Dry run — would start training",
+                extra={
+                    "max_steps": config.train.max_steps,
+                    "batch_size": config.train.batch_size,
+                    "precision": config.train.precision,
+                },
+            )
+            return SUCCESS
+
+        from m31r.training.engine.core import run_training
+        from m31r.training.engine.experiment import create_experiment_dir
+
+        project_root = _resolve_project_root()
+        experiments_root = project_root / config.global_config.directories.experiments
+        experiment_dir = create_experiment_dir(
+            experiments_root, config, config.global_config.seed,
+        )
+
+        result = run_training(config, experiment_dir)
+
+        logger.info(
+            "Training complete",
+            extra={
+                "final_step": result.final_step,
+                "final_loss": result.final_loss,
+                "total_tokens": result.total_tokens,
+                "experiment_dir": result.experiment_dir,
+            },
+        )
+        return SUCCESS
+
+    except Exception as err:
+        logger.error("Training failed", extra={"error": str(err)}, exc_info=True)
+        return RUNTIME_ERROR
+
+
+def handle_resume(args: argparse.Namespace) -> int:
+    """Resume training from a checkpoint."""
+    exit_code, config, logger = _load_and_bootstrap(args, "resume")
+    if exit_code != SUCCESS:
+        return exit_code
+
+    try:
+        if config is None or config.model is None or config.train is None:
+            logger.error(
+                "Model and training config sections are required",
+                extra={"command": "resume"},
+            )
+            return CONFIG_ERROR
+
+        logger.info(
+            "Resuming training",
+            extra={"command": "resume", "dry_run": args.dry_run},
+        )
+
+        if args.dry_run:
+            logger.info("Dry run — would resume training")
+            return SUCCESS
+
+        from m31r.training.checkpoint.core import find_latest_checkpoint
+        from m31r.training.engine.core import run_training
+        from m31r.training.engine.experiment import find_experiment_dir
+
+        project_root = _resolve_project_root()
+        experiments_root = project_root / config.global_config.directories.experiments
+
+        # Find experiment to resume
+        run_id = getattr(args, "run_id", None)
+        experiment_dir = find_experiment_dir(experiments_root, run_id)
+        if experiment_dir is None:
+            logger.error(
+                "No experiment found to resume",
+                extra={"experiments_root": str(experiments_root)},
+            )
+            return VALIDATION_ERROR
+
+        # Find latest checkpoint
+        checkpoint_dir = find_latest_checkpoint(experiment_dir)
+        if checkpoint_dir is None:
+            logger.error(
+                "No checkpoint found in experiment",
+                extra={"experiment_dir": str(experiment_dir)},
+            )
+            return VALIDATION_ERROR
+
+        logger.info(
+            "Found checkpoint",
+            extra={"checkpoint": str(checkpoint_dir)},
+        )
+
+        result = run_training(config, experiment_dir, resume_from=checkpoint_dir)
+
+        logger.info(
+            "Resumed training complete",
+            extra={
+                "final_step": result.final_step,
+                "final_loss": result.final_loss,
+                "total_tokens": result.total_tokens,
+            },
+        )
+        return SUCCESS
+
+    except Exception as err:
+        logger.error("Resume failed", extra={"error": str(err)}, exc_info=True)
+        return RUNTIME_ERROR
 
 
 def handle_eval(args: argparse.Namespace) -> int:
@@ -491,7 +614,67 @@ def handle_generate(args: argparse.Namespace) -> int:
 
 def handle_export(args: argparse.Namespace) -> int:
     """Create a release bundle from a trained model."""
-    return _execute_stub(args, "export")
+    exit_code, config, logger = _load_and_bootstrap(args, "export")
+    if exit_code != SUCCESS:
+        return exit_code
+
+    try:
+        logger.info(
+            "Starting export",
+            extra={"command": "export", "dry_run": args.dry_run},
+        )
+
+        if args.dry_run:
+            logger.info("Dry run — would export model")
+            return SUCCESS
+
+        from m31r.training.checkpoint.core import find_latest_checkpoint
+        from m31r.training.engine.experiment import find_experiment_dir
+        from m31r.training.export.core import export_model
+
+        project_root = _resolve_project_root()
+
+        # Find experiment and checkpoint
+        experiments_root = project_root / (
+            config.global_config.directories.experiments
+            if config is not None
+            else "experiments"
+        )
+        run_id = getattr(args, "run_id", None)
+        experiment_dir = find_experiment_dir(experiments_root, run_id)
+        if experiment_dir is None:
+            logger.error("No experiment found to export from")
+            return VALIDATION_ERROR
+
+        checkpoint_dir = find_latest_checkpoint(experiment_dir)
+        if checkpoint_dir is None:
+            logger.error("No checkpoint found to export")
+            return VALIDATION_ERROR
+
+        output_dir = getattr(args, "output_dir", None)
+        if output_dir is None:
+            output_dir = str(project_root / "exports" / experiment_dir.name)
+        output_path = Path(output_dir)
+
+        tokenizer_dir = None
+        if config is not None and config.train is not None:
+            tokenizer_dir = project_root / config.train.tokenizer_directory
+
+        result = export_model(checkpoint_dir, output_path, tokenizer_dir)
+
+        logger.info(
+            "Export complete",
+            extra={
+                "output_dir": result.output_dir,
+                "weights_hash": result.weights_hash[:16] + "...",
+                "step": result.step,
+            },
+        )
+        return SUCCESS
+
+    except Exception as err:
+        logger.error("Export failed", extra={"error": str(err)}, exc_info=True)
+        return RUNTIME_ERROR
 
 
 def handle_verify(args: argparse.Namespace) -> int:

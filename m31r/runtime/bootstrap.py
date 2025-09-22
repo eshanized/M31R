@@ -32,15 +32,25 @@ def set_deterministic_seed(seed: int) -> None:
     This sets:
       - Python's random module seed
       - PYTHONHASHSEED environment variable (controls hash randomization)
-
-    In later phases when we add PyTorch/numpy, those get seeded here too.
-    The point is: one function, one seed, full determinism.
+      - PyTorch CPU and CUDA seeds (when available)
+      - cuDNN deterministic mode (when available)
 
     Args:
         seed: Integer seed value. Must be >= 0.
     """
     random.seed(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
+
+    # Seed torch if available
+    try:
+        import torch
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
+            torch.backends.cudnn.deterministic = True  # type: ignore[attr-defined]
+            torch.backends.cudnn.benchmark = False  # type: ignore[attr-defined]
+    except ImportError:
+        pass
 
 
 def _ensure_project_directories(project_root: Path, config: GlobalConfig) -> None:
