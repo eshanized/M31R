@@ -68,6 +68,7 @@ def _create_tiny_training_setup(tmp_path: Path) -> Path:
           tokenizer_directory: "data/tokenizer"
     """)
     config_path = tmp_path / "train_config.yaml"
+    tmp_path.mkdir(parents=True, exist_ok=True)
     config_path.write_text(config_content, encoding="utf-8")
 
     # Create synthetic dataset shards
