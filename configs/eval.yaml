@@ -1,0 +1,18 @@
+# Default evaluation configuration for M31R.
+# See 14_EVALUATION_METHODOLOGY.md and 16_BENCHMARK_SUITE.md for context.
+
+global:
+  config_version: "1.0.0"
+  project_name: "m31r"
+  seed: 42
+  log_level: "INFO"
+
+eval:
+  config_version: "1.0.0"
+  benchmark_directory: "benchmarks"
+  k_values: [1, 5, 10]
+  compile_timeout_seconds: 10
+  test_timeout_seconds: 10
+  seed: 42
+  max_workers: 1
+  output_directory: "experiments"

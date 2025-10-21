@@ -392,11 +392,54 @@ class TrainConfig(BaseModel):
 
 
 class EvalConfig(BaseModel):
-    """Evaluation benchmarks and metrics. Maps to configs/eval.yaml."""
+    """
+    Everything the evaluation harness needs to run benchmarks against a model.
+
+    This controls where to find benchmark tasks, how many attempts to give
+    the model (pass@k), how long to let compilation and tests run before
+    giving up, and where results land.
+
+    Maps to configs/eval.yaml.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid", validate_default=True)
 
     config_version: str = Field(description="Schema version")
+    benchmark_directory: str = Field(
+        default="benchmarks",
+        description="Where benchmark task folders live, relative to project root",
+    )
+    k_values: list[int] = Field(
+        default_factory=lambda: [1, 5, 10],
+        description="Values of K for pass@k evaluation — each task gets this many attempts",
+    )
+    compile_timeout_seconds: int = Field(
+        default=10,
+        ge=1,
+        le=300,
+        description="Max seconds to wait for cargo build before declaring failure",
+    )
+    test_timeout_seconds: int = Field(
+        default=10,
+        ge=1,
+        le=300,
+        description="Max seconds to wait for cargo test before declaring failure",
+    )
+    seed: int = Field(
+        default=42,
+        ge=0,
+        description="Seed for deterministic generation — same seed means same outputs",
+    )
+    max_workers: int = Field(
+        default=1,
+        ge=1,
+        le=32,
+        description="Number of parallel task evaluations (kept at 1 for determinism by default)",
+    )
+    output_directory: str = Field(
+        default="experiments",
+        description="Where evaluation results get written, relative to project root",
+    )
 
 
 class RuntimeConfig(BaseModel):
