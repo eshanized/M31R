@@ -1,0 +1,4 @@
+difficulty: hard
+category: projects
+tags: [struct, methods]
+expected_runtime: 10

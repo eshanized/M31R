@@ -1,0 +1,4 @@
+difficulty: medium
+category: ownership
+tags: [ownership, borrowing, lifetime]
+expected_runtime: 5

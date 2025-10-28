@@ -1,0 +1,4 @@
+difficulty: medium
+category: refactor
+tags: [refactor, iterator]
+expected_runtime: 5

@@ -598,8 +598,283 @@ def handle_resume(args: argparse.Namespace) -> int:
 
 
 def handle_eval(args: argparse.Namespace) -> int:
-    """Run evaluation suite against a trained model."""
-    return _execute_stub(args, "eval")
+    """
+    Run the full evaluation pipeline against a trained model.
+
+    This is the command that answers the question: "Is this model good enough?"
+    It loads a checkpoint, runs every benchmark task K times, compiles the output,
+    runs tests, and writes a report with pass@k and compile success rates.
+    """
+    exit_code, config, logger = _load_and_bootstrap(args, "eval")
+    if exit_code != SUCCESS:
+        return exit_code
+
+    try:
+        if config is None or config.eval is None:
+            logger.error(
+                "Eval config section is required — add it to your config file",
+                extra={"command": "eval"},
+            )
+            return CONFIG_ERROR
+
+        eval_config = config.eval
+        logger.info(
+            "Starting evaluation",
+            extra={
+                "command": "eval",
+                "dry_run": args.dry_run,
+                "k_values": eval_config.k_values,
+                "benchmark_dir": eval_config.benchmark_directory,
+            },
+        )
+
+        if args.dry_run:
+            logger.info(
+                "Dry run — would evaluate model against benchmarks",
+                extra={
+                    "k_values": eval_config.k_values,
+                    "compile_timeout": eval_config.compile_timeout_seconds,
+                    "test_timeout": eval_config.test_timeout_seconds,
+                },
+            )
+            return SUCCESS
+
+        from m31r.evaluation.benchmarks.loader import load_benchmark_suite
+        from m31r.evaluation.metrics.engine import compute_metrics
+        from m31r.evaluation.reporting.writer import write_report
+        from m31r.evaluation.runner.executor import execute_suite
+
+        project_root = _resolve_project_root()
+
+        # Figure out where the benchmarks live
+        benchmark_dir = Path(getattr(args, "benchmark_dir", None) or "")
+        if not benchmark_dir.is_absolute():
+            benchmark_dir = project_root / eval_config.benchmark_directory
+        if not benchmark_dir.is_dir():
+            logger.error(
+                "Benchmark directory not found",
+                extra={"path": str(benchmark_dir)},
+            )
+            return VALIDATION_ERROR
+
+        suite = load_benchmark_suite(benchmark_dir)
+
+        # Load the model and tokenizer from checkpoint
+        model, tokenizer = _load_model_for_eval(args, config, project_root, logger)
+        if model is None:
+            return VALIDATION_ERROR
+
+        # The max K value determines how many attempts each task gets
+        max_k = max(eval_config.k_values)
+
+        results = execute_suite(
+            model=model,
+            tokenizer=tokenizer,
+            tasks=suite.tasks,
+            seed=eval_config.seed,
+            k=max_k,
+            compile_timeout=eval_config.compile_timeout_seconds,
+            test_timeout=eval_config.test_timeout_seconds,
+        )
+
+        metrics = compute_metrics(results, eval_config.k_values, seed=eval_config.seed)
+
+        # Write results to experiments/<run_id>/eval/
+        import time
+        run_id = f"eval_{int(time.time())}"
+        output_dir = project_root / eval_config.output_directory / run_id / "eval"
+
+        config_snapshot = config.model_dump() if hasattr(config, "model_dump") else {}
+        write_report(metrics, output_dir, config_snapshot=config_snapshot)
+
+        logger.info(
+            "Evaluation complete",
+            extra={
+                "compile_success_rate": round(metrics.compile_success_rate, 4),
+                "pass_at_k": {str(k): round(v, 4) for k, v in metrics.pass_at_k.items()},
+                "total_tasks": metrics.total_tasks,
+                "output_dir": str(output_dir),
+            },
+        )
+        return SUCCESS
+
+    except FileNotFoundError as err:
+        logger.error("Evaluation failed — missing files", extra={"error": str(err)})
+        return VALIDATION_ERROR
+    except Exception as err:
+        logger.error("Evaluation failed", extra={"error": str(err)}, exc_info=True)
+        return RUNTIME_ERROR
+
+
+def _load_model_for_eval(
+    args: argparse.Namespace,
+    config: M31RConfig,
+    project_root: Path,
+    logger: logging.Logger,
+) -> tuple:
+    """
+    Load model and tokenizer for evaluation.
+
+    Tries to load from an explicit --checkpoint path first, then falls back
+    to finding the latest checkpoint in the experiments directory. Returns
+    (model, tokenizer) on success, (None, None) if something goes wrong.
+    """
+    try:
+        import torch
+
+        from m31r.model.transformer import M31RTransformer, TransformerModelConfig
+        from m31r.training.checkpoint.core import find_latest_checkpoint, load_checkpoint
+
+        if config.model is None:
+            logger.error("Model config section is required for evaluation")
+            return None, None
+
+        model_cfg = TransformerModelConfig(
+            vocab_size=config.model.vocab_size,
+            dim=config.model.dim,
+            n_layers=config.model.n_layers,
+            n_heads=config.model.n_heads,
+            head_dim=config.model.head_dim,
+            max_seq_len=config.model.max_seq_len,
+            dropout=config.model.dropout,
+            norm_eps=config.model.norm_eps,
+            rope_theta=config.model.rope_theta,
+            init_std=config.model.init_std,
+            seed=config.global_config.seed,
+        )
+        model = M31RTransformer(model_cfg)
+
+        # Resolve checkpoint path
+        checkpoint_path = getattr(args, "checkpoint", None)
+        if checkpoint_path is not None:
+            checkpoint_dir = Path(checkpoint_path)
+        else:
+            experiments_root = project_root / config.global_config.directories.experiments
+            from m31r.training.engine.experiment import find_experiment_dir
+            experiment_dir = find_experiment_dir(experiments_root, None)
+            if experiment_dir is None:
+                logger.error("No experiment found — train a model first")
+                return None, None
+            checkpoint_dir = find_latest_checkpoint(experiment_dir)
+            if checkpoint_dir is None:
+                logger.error(
+                    "No checkpoint found in experiment",
+                    extra={"experiment_dir": str(experiment_dir)},
+                )
+                return None, None
+
+        if not checkpoint_dir.is_dir():
+            logger.error(
+                "Checkpoint directory not found",
+                extra={"path": str(checkpoint_dir)},
+            )
+            return None, None
+
+        device = torch.device("cpu")
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+
+        load_checkpoint(checkpoint_dir, model, device=device)
+        model = model.to(device)
+        model.eval()
+
+        # Load tokenizer if available
+        tokenizer = None
+        try:
+            from tokenizers import Tokenizer as HFTokenizer
+
+            tokenizer_path = project_root / "data" / "tokenizer" / "tokenizer.json"
+            if config.train is not None:
+                tokenizer_path = project_root / config.train.tokenizer_directory / "tokenizer.json"
+
+            if tokenizer_path.is_file():
+                tokenizer = HFTokenizer.from_file(str(tokenizer_path))
+                logger.info("Tokenizer loaded", extra={"path": str(tokenizer_path)})
+            else:
+                logger.warning("No tokenizer found — generation will be limited")
+        except ImportError:
+            logger.warning("tokenizers package not available")
+
+        logger.info(
+            "Model loaded for evaluation",
+            extra={
+                "checkpoint": str(checkpoint_dir),
+                "parameters": model.count_parameters(),
+                "device": str(device),
+            },
+        )
+        return model, tokenizer
+
+    except Exception as err:
+        logger.error("Failed to load model", extra={"error": str(err)}, exc_info=True)
+        return None, None
+
+
+def handle_benchmark(args: argparse.Namespace) -> int:
+    """
+    List or inspect benchmark tasks without running evaluation.
+
+    Handy for checking that your benchmark directory is structured correctly
+    and all tasks load without errors, before committing to a full eval run.
+    """
+    exit_code, config, logger = _load_and_bootstrap(args, "benchmark")
+    if exit_code != SUCCESS:
+        return exit_code
+
+    try:
+        from m31r.evaluation.benchmarks.loader import load_benchmark_suite
+
+        project_root = _resolve_project_root()
+
+        benchmark_dir_str = getattr(args, "benchmark_dir", None)
+        if benchmark_dir_str:
+            benchmark_dir = Path(benchmark_dir_str)
+        elif config is not None and config.eval is not None:
+            benchmark_dir = project_root / config.eval.benchmark_directory
+        else:
+            benchmark_dir = project_root / "benchmarks"
+
+        if not benchmark_dir.is_dir():
+            logger.error(
+                "Benchmark directory not found",
+                extra={"path": str(benchmark_dir)},
+            )
+            return VALIDATION_ERROR
+
+        suite = load_benchmark_suite(benchmark_dir)
+
+        # Tally tasks by category for a nice summary
+        from collections import Counter
+        category_counts = Counter(t.category for t in suite.tasks)
+
+        logger.info(
+            "Benchmark suite summary",
+            extra={
+                "version": suite.version,
+                "total_tasks": len(suite.tasks),
+                "categories": dict(category_counts),
+            },
+        )
+
+        for task in suite.tasks:
+            logger.info(
+                "Task",
+                extra={
+                    "task_id": task.task_id,
+                    "category": task.category,
+                    "difficulty": task.difficulty,
+                    "tags": task.tags,
+                },
+            )
+
+        return SUCCESS
+
+    except FileNotFoundError as err:
+        logger.error("Benchmark loading failed", extra={"error": str(err)})
+        return VALIDATION_ERROR
+    except Exception as err:
+        logger.error("Benchmark command failed", extra={"error": str(err)}, exc_info=True)
+        return RUNTIME_ERROR
 
 
 def handle_serve(args: argparse.Namespace) -> int:

@@ -22,6 +22,7 @@ import argparse
 import sys
 
 from m31r.cli.commands import (
+    handle_benchmark,
     handle_crawl,
     handle_dataset,
     handle_eval,
@@ -98,6 +99,7 @@ def _register_subcommands(
         ("train", "Train the model from scratch.", handle_train),
         ("resume", "Resume training from a checkpoint.", handle_resume),
         ("eval", "Run evaluation suite.", handle_eval),
+        ("benchmark", "List or inspect benchmark tasks.", handle_benchmark),
         ("serve", "Start local inference server.", handle_serve),
         ("generate", "Generate tokens from a prompt.", handle_generate),
         ("export", "Create release bundle.", handle_export),
@@ -143,6 +145,32 @@ def _register_subcommands(
         default=None,
         dest="output_dir",
         help="Directory to write the export bundle to.",
+    )
+
+    # Eval command args
+    eval_parser = subparsers.choices["eval"]
+    eval_parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default=None,
+        help="Path to a specific checkpoint directory to evaluate.",
+    )
+    eval_parser.add_argument(
+        "--benchmark-dir",
+        type=str,
+        default=None,
+        dest="benchmark_dir",
+        help="Override the benchmark directory path.",
+    )
+
+    # Benchmark command args
+    benchmark_parser = subparsers.choices["benchmark"]
+    benchmark_parser.add_argument(
+        "--benchmark-dir",
+        type=str,
+        default=None,
+        dest="benchmark_dir",
+        help="Override the benchmark directory path.",
     )
 
     _register_tokenizer_subcommands(subparsers, parent)
