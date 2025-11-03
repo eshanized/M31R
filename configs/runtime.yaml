@@ -1,0 +1,19 @@
+# M31R Runtime Configuration
+# See docs/17_SERVING_ARCHITECTURE.md for the full spec.
+
+runtime:
+  config_version: "1.0.0"
+  device: "auto"
+  quantization: "none"
+  max_tokens: 512
+  temperature: 0.0
+  top_k: 0
+  max_context_length: 2048
+  stream: true
+  host: "127.0.0.1"
+  port: 8731
+  max_request_size_bytes: 1048576
+  request_timeout_seconds: 60
+  model_path: "exports"
+  tokenizer_path: "data/tokenizer"
+  seed: 42

@@ -443,11 +443,86 @@ class EvalConfig(BaseModel):
 
 
 class RuntimeConfig(BaseModel):
-    """Inference runtime settings. Maps to configs/runtime.yaml."""
+    """
+    Inference runtime settings. Maps to configs/runtime.yaml.
+
+    This controls everything about how the model runs at inference time —
+    what device to use, how much to quantize, generation behavior, and
+    the local server configuration. All of these are meant to be tuned
+    without touching code.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid", validate_default=True)
 
     config_version: str = Field(description="Schema version")
+    device: str = Field(
+        default="auto",
+        description="Device for inference: 'auto', 'cpu', or 'cuda'",
+    )
+    quantization: str = Field(
+        default="none",
+        description="Weight quantization mode: 'none', 'fp16', 'int8', or 'int4'",
+    )
+    max_tokens: int = Field(
+        default=512,
+        ge=1,
+        le=8192,
+        description="Maximum number of tokens to generate per request",
+    )
+    temperature: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=2.0,
+        description="Sampling temperature — 0.0 means deterministic greedy decoding",
+    )
+    top_k: int = Field(
+        default=0,
+        ge=0,
+        description="Top-k sampling — 0 means disabled, greedy only",
+    )
+    max_context_length: int = Field(
+        default=2048,
+        ge=128,
+        description="Maximum context window in tokens, must match model training",
+    )
+    stream: bool = Field(
+        default=True,
+        description="Whether to stream tokens incrementally during generation",
+    )
+    host: str = Field(
+        default="127.0.0.1",
+        description="Server bind address — localhost only by default for security",
+    )
+    port: int = Field(
+        default=8731,
+        ge=1024,
+        le=65535,
+        description="Server bind port",
+    )
+    max_request_size_bytes: int = Field(
+        default=1_048_576,
+        ge=1024,
+        description="Maximum allowed request payload size in bytes (default 1MB)",
+    )
+    request_timeout_seconds: int = Field(
+        default=60,
+        ge=1,
+        le=600,
+        description="Maximum time allowed per request before timeout",
+    )
+    model_path: str = Field(
+        default="exports",
+        description="Path to model weights directory, relative to project root",
+    )
+    tokenizer_path: str = Field(
+        default="data/tokenizer",
+        description="Path to tokenizer bundle directory, relative to project root",
+    )
+    seed: int = Field(
+        default=42,
+        ge=0,
+        description="Seed for deterministic generation — same seed means same output",
+    )
 
 
 class M31RConfig(BaseModel):
