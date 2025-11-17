@@ -173,6 +173,56 @@ def _register_subcommands(
         help="Override the benchmark directory path.",
     )
 
+    # Generate command args
+    gen_parser = subparsers.choices["generate"]
+    gen_parser.add_argument(
+        "--prompt", type=str, default=None,
+        help="Text prompt to generate from.",
+    )
+    gen_parser.add_argument(
+        "--max-tokens", type=int, default=None, dest="max_tokens",
+        help="Maximum number of tokens to generate.",
+    )
+    gen_parser.add_argument(
+        "--temperature", type=float, default=None,
+        help="Sampling temperature (0.0 = greedy).",
+    )
+    gen_parser.add_argument(
+        "--top-k", type=int, default=None, dest="top_k",
+        help="Top-k sampling parameter (0 = disabled).",
+    )
+    gen_parser.add_argument(
+        "--quantization", type=str, default=None, dest="quantization_mode",
+        choices=["none", "fp16", "int8", "int4"],
+        help="Override quantization mode.",
+    )
+    gen_parser.add_argument(
+        "--device", type=str, default=None,
+        choices=["auto", "cpu", "cuda"],
+        help="Override device selection.",
+    )
+
+    # Serve command args
+    serve_parser = subparsers.choices["serve"]
+    serve_parser.add_argument(
+        "--host", type=str, default=None,
+        help="Server bind address (default: 127.0.0.1).",
+    )
+    serve_parser.add_argument(
+        "--port", type=int, default=None,
+        help="Server bind port (default: 8731).",
+    )
+    serve_parser.add_argument(
+        "--quantization", type=str, default=None, dest="quantization_mode",
+        choices=["none", "fp16", "int8", "int4"],
+        help="Override quantization mode.",
+    )
+    serve_parser.add_argument(
+        "--device", type=str, default=None,
+        choices=["auto", "cpu", "cuda"],
+        help="Override device selection.",
+    )
+
     _register_tokenizer_subcommands(subparsers, parent)
 
 
