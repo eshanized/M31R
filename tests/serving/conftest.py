@@ -23,12 +23,12 @@ from m31r.model.transformer import M31RTransformer, TransformerModelConfig
 def tiny_model_config() -> TransformerModelConfig:
     """A miniature transformer config that runs fast on CPU."""
     return TransformerModelConfig(
-        vocab_size=128,
-        dim=32,
+        vocab_size=256,
+        dim=64,
         n_layers=2,
         n_heads=2,
-        head_dim=16,
-        max_seq_len=64,
+        head_dim=32,
+        max_seq_len=128,
         dropout=0.0,
         norm_eps=1e-6,
         rope_theta=10000.0,
@@ -128,15 +128,15 @@ def runtime_config_yaml(tmp_path: Path, model_export_dir: Path, tokenizer_dir: P
         model:
           config_version: "1.0.0"
           n_layers: 2
-          hidden_size: 32
+          hidden_size: 64
           n_heads: 2
-          head_dim: 16
-          context_length: 64
+          head_dim: 32
+          context_length: 128
           dropout: 0.0
           norm_eps: 1e-6
           rope_theta: 10000.0
           init_std: 0.02
-          vocab_size: 128
+          vocab_size: 256
         runtime:
           config_version: "1.0.0"
           device: "cpu"
@@ -144,7 +144,7 @@ def runtime_config_yaml(tmp_path: Path, model_export_dir: Path, tokenizer_dir: P
           max_tokens: 10
           temperature: 0.0
           top_k: 0
-          max_context_length: 64
+          max_context_length: 128
           stream: false
           host: "127.0.0.1"
           port: 8731

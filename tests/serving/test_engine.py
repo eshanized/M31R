@@ -22,11 +22,11 @@ class TestInferenceEngineForward:
             model=tiny_model,
             tokenizer=None,
             device=torch.device("cpu"),
-            max_context_length=64,
+            max_context_length=128,
         )
 
         logits = engine._forward([1, 2, 3])
-        assert logits.shape == (128,)  # vocab_size from tiny_model_config
+        assert logits.shape == (256,)  # vocab_size from tiny_model_config
 
     def test_deterministic_forward(
         self,
@@ -43,11 +43,11 @@ class TestInferenceEngineForward:
 
         engine1 = InferenceEngine(
             model=model1, tokenizer=None,
-            device=torch.device("cpu"), max_context_length=64,
+            device=torch.device("cpu"), max_context_length=128,
         )
         engine2 = InferenceEngine(
             model=model2, tokenizer=None,
-            device=torch.device("cpu"), max_context_length=64,
+            device=torch.device("cpu"), max_context_length=128,
         )
 
         logits1 = engine1._forward([1, 2, 3])
@@ -75,7 +75,7 @@ class TestEngineGeneration:
             model=tiny_model,
             tokenizer=MockTokenizer(),
             device=torch.device("cpu"),
-            max_context_length=64,
+            max_context_length=128,
         )
 
     def test_generate_returns_response(
@@ -83,7 +83,7 @@ class TestEngineGeneration:
         tiny_model: M31RTransformer,
     ) -> None:
         engine = self._make_engine_with_mock_tokenizer(tiny_model)
-        config = GenerationConfig(max_tokens=5, temperature=0.0)
+        config = GenerationConfig(max_tokens=5, temperature=0.0, eos_token_id=9999)
 
         response = engine.generate("test prompt", config)
         assert response.tokens_generated > 0
@@ -95,7 +95,7 @@ class TestEngineGeneration:
         tiny_model: M31RTransformer,
     ) -> None:
         engine = self._make_engine_with_mock_tokenizer(tiny_model)
-        config = GenerationConfig(max_tokens=3, temperature=0.0)
+        config = GenerationConfig(max_tokens=3, temperature=0.0, eos_token_id=9999)
 
         response = engine.generate("test", config)
         assert response.tokens_generated <= 3
@@ -105,7 +105,7 @@ class TestEngineGeneration:
         tiny_model: M31RTransformer,
     ) -> None:
         engine = self._make_engine_with_mock_tokenizer(tiny_model)
-        config = GenerationConfig(max_tokens=3, temperature=0.0)
+        config = GenerationConfig(max_tokens=3, temperature=0.0, eos_token_id=9999)
 
         chunks = list(engine.generate_stream("test", config))
         assert len(chunks) > 0
@@ -116,7 +116,7 @@ class TestEngineGeneration:
         tiny_model: M31RTransformer,
     ) -> None:
         engine = self._make_engine_with_mock_tokenizer(tiny_model)
-        config = GenerationConfig(max_tokens=3, temperature=0.0)
+        config = GenerationConfig(max_tokens=3, temperature=0.0, eos_token_id=9999)
 
         engine.generate("test", config)
         assert engine.metrics.total_requests == 1

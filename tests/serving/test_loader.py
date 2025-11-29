@@ -94,15 +94,15 @@ class TestLoadArtifactsIntegration:
         model_cfg = ModelConfig(
             config_version="1.0.0",
             n_layers=2,
-            hidden_size=32,
+            hidden_size=64,
             n_heads=2,
-            head_dim=16,
-            context_length=64,
+            head_dim=32,
+            context_length=128,
             dropout=0.0,
             norm_eps=1e-6,
             rope_theta=10000.0,
             init_std=0.02,
-            vocab_size=128,
+            vocab_size=256,
         )
 
         runtime_cfg = RuntimeConfig(
@@ -112,6 +112,7 @@ class TestLoadArtifactsIntegration:
             model_path=str(model_export_dir),
             tokenizer_path=str(tokenizer_dir),
             seed=42,
+            max_context_length=128,
         )
 
         # Use the export dir as project root since paths are absolute
