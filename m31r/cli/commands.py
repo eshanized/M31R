@@ -1054,7 +1054,7 @@ def handle_generate(args: argparse.Namespace) -> int:
 
 
 def handle_export(args: argparse.Namespace) -> int:
-    """Create a release bundle from a trained model."""
+    """Create an immutable release bundle from a trained model."""
     exit_code, config, logger = _load_and_bootstrap(args, "export")
     if exit_code != SUCCESS:
         return exit_code
@@ -1066,12 +1066,12 @@ def handle_export(args: argparse.Namespace) -> int:
         )
 
         if args.dry_run:
-            logger.info("Dry run — would export model")
+            logger.info("Dry run — would create release bundle")
             return SUCCESS
 
+        from m31r import __version__
         from m31r.training.checkpoint.core import find_latest_checkpoint
         from m31r.training.engine.experiment import find_experiment_dir
-        from m31r.training.export.core import export_model
 
         project_root = _resolve_project_root()
 
@@ -1092,34 +1092,61 @@ def handle_export(args: argparse.Namespace) -> int:
             logger.error("No checkpoint found to export")
             return VALIDATION_ERROR
 
-        output_dir = getattr(args, "output_dir", None)
-        if output_dir is None:
-            output_dir = str(project_root / "exports" / experiment_dir.name)
-        output_path = Path(output_dir)
-
-        tokenizer_dir = None
+        # Resolve tokenizer directory
+        tokenizer_dir = project_root / "data" / "tokenizer"
         if config is not None and config.train is not None:
             tokenizer_dir = project_root / config.train.tokenizer_directory
 
-        result = export_model(checkpoint_dir, output_path, tokenizer_dir)
+        # Resolve output and version
+        version = getattr(args, "version", None) or __version__
+        output_root = project_root / "release"
+        output_dir = getattr(args, "output_dir", None)
+        if output_dir is not None:
+            output_root = Path(output_dir)
+
+        # Resolve config path for snapshot
+        config_path = None
+        if args.config is not None:
+            config_path = Path(args.config)
+
+        seed = config.global_config.seed if config is not None else 42
+
+        from m31r.release.packaging.packager import create_release
+
+        result = create_release(
+            version=version,
+            checkpoint_dir=checkpoint_dir,
+            tokenizer_dir=tokenizer_dir,
+            output_root=output_root,
+            config_path=config_path,
+            training_seed=seed,
+            m31r_version=__version__,
+        )
 
         logger.info(
-            "Export complete",
+            "Release created",
             extra={
+                "version": result.version,
                 "output_dir": result.output_dir,
-                "weights_hash": result.weights_hash[:16] + "...",
-                "step": result.step,
+                "file_count": result.file_count,
+                "checksum_count": result.checksum_count,
             },
         )
         return SUCCESS
 
+    except FileExistsError as err:
+        logger.error("Export failed — version exists", extra={"error": str(err)})
+        return VALIDATION_ERROR
+    except FileNotFoundError as err:
+        logger.error("Export failed — missing files", extra={"error": str(err)})
+        return VALIDATION_ERROR
     except Exception as err:
         logger.error("Export failed", extra={"error": str(err)}, exc_info=True)
         return RUNTIME_ERROR
 
 
 def handle_verify(args: argparse.Namespace) -> int:
-    """Validate dataset or artifact integrity."""
+    """Validate dataset or release artifact integrity."""
     exit_code, config, logger = _load_and_bootstrap(args, "verify")
     if exit_code != SUCCESS:
         return exit_code
@@ -1127,6 +1154,38 @@ def handle_verify(args: argparse.Namespace) -> int:
     try:
         logger.info("Starting verification", extra={"command": "verify"})
 
+        # Verify a release directory
+        release_dir = getattr(args, "release_dir", None)
+        if release_dir is not None:
+            from m31r.release.verification.verifier import verify_release
+
+            release_path = Path(release_dir)
+            report = verify_release(release_path)
+
+            for check in report.checks_passed:
+                logger.info("Check PASSED", extra={"check": check})
+            for check in report.checks_failed:
+                logger.error("Check FAILED", extra={"check": check})
+            for error in report.errors:
+                logger.error("Verification error", extra={"detail": error})
+
+            if not report.is_valid:
+                logger.error(
+                    "Release verification FAILED",
+                    extra={"release_dir": str(release_path)},
+                )
+                return VALIDATION_ERROR
+
+            logger.info(
+                "Release verification PASSED",
+                extra={
+                    "release_dir": str(release_path),
+                    "checks_passed": len(report.checks_passed),
+                },
+            )
+            return SUCCESS
+
+        # Verify a dataset directory
         if args.dataset_dir is not None:
             from m31r.data.hashing.integrity import verify_dataset_integrity
 
@@ -1141,9 +1200,10 @@ def handle_verify(args: argparse.Namespace) -> int:
                 return VALIDATION_ERROR
 
             logger.info("Integrity check passed", extra={"path": str(dataset_path)})
+            return SUCCESS
 
-        logger.info("Verification complete", extra={"command": "verify"})
-        return SUCCESS
+        logger.error("No target specified — use --release-dir or --dataset-dir")
+        return USER_ERROR
 
     except Exception as err:
         logger.error("Verification failed", extra={"error": str(err)}, exc_info=True)
@@ -1151,10 +1211,11 @@ def handle_verify(args: argparse.Namespace) -> int:
 
 
 def handle_info(args: argparse.Namespace) -> int:
-    """Display environment and configuration information."""
+    """Display environment, configuration, and system information."""
     logger = get_logger("m31r.cli.info", log_level=args.log_level)
 
     from m31r import __version__
+    from m31r.release.environment.validator import validate_environment
     from m31r.runtime.environment import get_system_info
 
     system_info = get_system_info()
@@ -1170,5 +1231,78 @@ def handle_info(args: argparse.Namespace) -> int:
             "config": args.config,
         },
     )
+
+    # Run environment checks
+    checks = validate_environment()
+    for check in checks:
+        log_fn = logger.info if check.passed else logger.warning
+        log_fn(
+            f"Environment: {check.name}",
+            extra={
+                "passed": check.passed,
+                "value": check.value,
+                "message": check.message,
+            },
+        )
+
+    failed_checks = [c for c in checks if not c.passed]
+    if failed_checks:
+        logger.warning(
+            "Some environment checks failed",
+            extra={"failed_count": len(failed_checks)},
+        )
+
     return SUCCESS
+
+
+def handle_clean(args: argparse.Namespace) -> int:
+    """Remove temporary files and caches from the project."""
+    logger = get_logger("m31r.cli.clean", log_level=args.log_level)
+
+    try:
+        from m31r.release.cleanup.cleaner import clean_project
+
+        project_root = _resolve_project_root()
+        preserve_releases = not getattr(args, "all", False)
+        remove_logs = getattr(args, "logs", False)
+
+        logger.info(
+            "Starting cleanup",
+            extra={
+                "project_root": str(project_root),
+                "preserve_releases": preserve_releases,
+                "remove_logs": remove_logs,
+                "dry_run": args.dry_run,
+            },
+        )
+
+        if args.dry_run:
+            logger.info("Dry run — would clean project files")
+            return SUCCESS
+
+        result = clean_project(
+            project_root,
+            preserve_releases=preserve_releases,
+            remove_logs=remove_logs,
+        )
+
+        freed_mb = result.freed_bytes / (1024 * 1024)
+        logger.info(
+            "Cleanup complete",
+            extra={
+                "removed_dirs": result.removed_dirs,
+                "removed_files": result.removed_files,
+                "freed_mb": f"{freed_mb:.1f}",
+            },
+        )
+
+        if result.errors:
+            for error in result.errors:
+                logger.warning("Cleanup error", extra={"detail": error})
+
+        return SUCCESS
+
+    except Exception as err:
+        logger.error("Cleanup failed", extra={"error": str(err)}, exc_info=True)
+        return RUNTIME_ERROR
 
