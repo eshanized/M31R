@@ -23,6 +23,7 @@ import sys
 
 from m31r.cli.commands import (
     handle_benchmark,
+    handle_clean,
     handle_crawl,
     handle_dataset,
     handle_eval,
@@ -104,6 +105,7 @@ def _register_subcommands(
         ("generate", "Generate tokens from a prompt.", handle_generate),
         ("export", "Create release bundle.", handle_export),
         ("verify", "Validate artifact integrity.", handle_verify),
+        ("clean", "Remove temporary files and caches.", handle_clean),
         ("info", "Display environment and config info.", handle_info),
     ]
 
@@ -144,7 +146,38 @@ def _register_subcommands(
         type=str,
         default=None,
         dest="output_dir",
-        help="Directory to write the export bundle to.",
+        help="Directory to write the release bundle to.",
+    )
+    export_parser.add_argument(
+        "--version",
+        type=str,
+        default=None,
+        help="Release version string (default: package version).",
+    )
+
+    # Verify command args — add --release-dir
+    verify_parser = subparsers.choices["verify"]
+    verify_parser.add_argument(
+        "--release-dir",
+        type=str,
+        default=None,
+        dest="release_dir",
+        help="Path to a release directory to verify.",
+    )
+
+    # Clean command args
+    clean_parser = subparsers.choices["clean"]
+    clean_parser.add_argument(
+        "--all",
+        action="store_true",
+        default=False,
+        help="Also clean releases (use with caution).",
+    )
+    clean_parser.add_argument(
+        "--logs",
+        action="store_true",
+        default=False,
+        help="Also remove log files.",
     )
 
     # Eval command args
