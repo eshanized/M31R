@@ -228,7 +228,7 @@ def validate_environment(
             extra={
                 "check": check.name,
                 "passed": check.passed,
-                "message": check.message,
+                "check_message": check.message,
             },
         )
 
