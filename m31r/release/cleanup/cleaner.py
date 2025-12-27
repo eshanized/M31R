@@ -80,9 +80,14 @@ def _is_protected(path: Path, project_root: Path) -> bool:
     if path == project_root:
         return True
 
-    # Check if it's a top-level protected directory
-    if path.parent == project_root and path.name in _PROTECTED_DIRS:
-        return True
+    # Check if the top-level directory containing this path is protected
+    try:
+        rel_path = path.relative_to(project_root)
+        if rel_path.parts and rel_path.parts[0] in _PROTECTED_DIRS:
+            return True
+    except ValueError:
+        # Path is not inside project_root
+        return False
 
     return False
 
