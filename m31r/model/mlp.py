@@ -10,34 +10,15 @@ Per 06_MODEL_ARCHITECTURE.md §9:
   Reason: Better parameter efficiency and performance compared to ReLU/GELU.
 
 SwiGLU uses a gating mechanism: out = (Linear_gate(x) * silu(Linear_up(x)))
-followed by a down projection. The intermediate dimension is typically
-(4/3) * 4 * dim, rounded to the nearest multiple of 256 for efficiency.
+followed by a down projection. The intermediate dimension is computed via
+the config's intermediate_dim property.
 """
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
-def _compute_intermediate_size(dim: int, multiple_of: int = 256) -> int:
-    """
-    Compute the SwiGLU intermediate dimension.
-
-    Uses the canonical (4/3) * 4 * dim formula from the LLaMA family,
-    rounded up to the nearest multiple of `multiple_of` for hardware
-    alignment efficiency.
-
-    Args:
-        dim: Model hidden dimension.
-        multiple_of: Round up to nearest multiple of this value.
-
-    Returns:
-        Intermediate dimension as an integer.
-    """
-    intermediate = int(2 * (4 * dim) / 3)
-    # Round up to nearest multiple
-    intermediate = multiple_of * ((intermediate + multiple_of - 1) // multiple_of)
-    return intermediate
+from m31r.model.config import compute_intermediate_size
 
 
 class SwiGLUFeedForward(nn.Module):
@@ -62,7 +43,7 @@ class SwiGLUFeedForward(nn.Module):
     ) -> None:
         super().__init__()
         if intermediate_dim is None:
-            intermediate_dim = _compute_intermediate_size(dim)
+            intermediate_dim = compute_intermediate_size(dim)
 
         self.w1 = nn.Linear(dim, intermediate_dim, bias=False)  # gate projection
         self.w2 = nn.Linear(intermediate_dim, dim, bias=False)  # down projection

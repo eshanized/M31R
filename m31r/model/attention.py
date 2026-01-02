@@ -19,7 +19,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from m31r.model.layers.rotary import apply_rotary_emb
+from m31r.model.rope import apply_rotary_emb
 
 
 class CausalSelfAttention(nn.Module):
@@ -29,6 +29,9 @@ class CausalSelfAttention(nn.Module):
     Uses separate projections for Q, K, V and applies rotary positional
     embeddings before computing attention scores. A causal mask prevents
     attending to future positions.
+
+    Uses PyTorch's scaled_dot_product_attention which automatically
+    dispatches to FlashAttention when available.
 
     Args:
         dim: Model hidden dimension.

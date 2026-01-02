@@ -18,9 +18,9 @@ This order is fixed. Pre-norm configuration is required.
 import torch
 import torch.nn as nn
 
-from m31r.model.attention.core import CausalSelfAttention
-from m31r.model.blocks.feedforward import SwiGLUFeedForward
-from m31r.model.layers.rmsnorm import RMSNorm
+from m31r.model.attention import CausalSelfAttention
+from m31r.model.mlp import SwiGLUFeedForward
+from m31r.model.norm import RMSNorm
 
 
 class TransformerBlock(nn.Module):

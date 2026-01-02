@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 """
-Deterministic weight initialization for M31R.
+Model utilities for M31R.
 
 Per 06_MODEL_ARCHITECTURE.md §21:
   Weights must use deterministic seeds.
@@ -21,7 +21,7 @@ def init_weights(module: nn.Module, seed: int, init_std: float = 0.02) -> None:
     """
     Initialize all parameters in a module deterministically.
 
-    Uses Xavier-like normal initialization for linear layers and constant
+    Uses scaled normal initialization for linear layers and constant
     initialization for norms. A dedicated Generator ensures reproducibility
     regardless of external random state.
 
@@ -49,3 +49,16 @@ def init_weights(module: nn.Module, seed: int, init_std: float = 0.02) -> None:
             # Biases (if any exist): init to 0.0
             with torch.no_grad():
                 param.zero_()
+
+
+def count_parameters(module: nn.Module) -> int:
+    """
+    Count total trainable parameters in a module.
+
+    Args:
+        module: The nn.Module to count.
+
+    Returns:
+        Integer count of all parameters with requires_grad=True.
+    """
+    return sum(p.numel() for p in module.parameters() if p.requires_grad)

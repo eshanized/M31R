@@ -1,0 +1,16 @@
+# M31R-Tiny Model Configuration
+# CPU-friendly model for pipeline validation and fast iteration.
+# See docs/06_MODEL_ARCHITECTURE.md for the full spec.
+
+model:
+  config_version: "1.0.0"
+  n_layers: 6
+  hidden_size: 384
+  n_heads: 6
+  head_dim: 64
+  context_length: 1024
+  dropout: 0.1
+  norm_eps: 1e-6
+  rope_theta: 10000.0
+  init_std: 0.02
+  vocab_size: 16384

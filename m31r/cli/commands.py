@@ -731,11 +731,11 @@ def _load_model_for_eval(
 
         model_cfg = TransformerModelConfig(
             vocab_size=config.model.vocab_size,
-            dim=config.model.dim,
+            dim=config.model.hidden_size,
             n_layers=config.model.n_layers,
             n_heads=config.model.n_heads,
             head_dim=config.model.head_dim,
-            max_seq_len=config.model.max_seq_len,
+            max_seq_len=config.model.context_length,
             dropout=config.model.dropout,
             norm_eps=config.model.norm_eps,
             rope_theta=config.model.rope_theta,
