@@ -10,7 +10,8 @@ parameter count, weight tying, and determinism.
 
 import torch
 
-from m31r.model.transformer import M31RTransformer, TransformerModelConfig
+from m31r.model.config import TransformerModelConfig
+from m31r.model.transformer import M31RTransformer
 
 
 def _tiny_config() -> TransformerModelConfig:
