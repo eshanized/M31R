@@ -58,9 +58,7 @@ def _load_single_task(task_dir: Path, category: str) -> BenchmarkTask:
     for filename in _REQUIRED_FILES:
         filepath = task_dir / filename
         if not filepath.is_file():
-            raise FileNotFoundError(
-                f"Task {task_dir.name} is missing required file: {filename}"
-            )
+            raise FileNotFoundError(f"Task {task_dir.name} is missing required file: {filename}")
 
     metadata_raw = yaml.safe_load((task_dir / "metadata.yaml").read_text(encoding="utf-8"))
     if not isinstance(metadata_raw, dict):
@@ -139,9 +137,7 @@ def load_benchmark_suite(benchmark_dir: Path) -> BenchmarkSuite:
                 raise
 
     if not tasks:
-        raise FileNotFoundError(
-            f"No valid benchmark tasks found in {benchmark_dir}"
-        )
+        raise FileNotFoundError(f"No valid benchmark tasks found in {benchmark_dir}")
 
     # Sort for deterministic ordering — this is a hard requirement
     tasks.sort(key=lambda t: t.task_id)

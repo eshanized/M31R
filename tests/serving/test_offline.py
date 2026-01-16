@@ -77,9 +77,17 @@ class TestOfflineQuantization:
         from m31r.serving.quantization.core import quantize_model
 
         config = TransformerModelConfig(
-            vocab_size=64, dim=16, n_layers=1, n_heads=2,
-            head_dim=8, max_seq_len=16, dropout=0.0,
-            norm_eps=1e-6, rope_theta=10000.0, init_std=0.02, seed=42,
+            vocab_size=64,
+            dim=16,
+            n_layers=1,
+            n_heads=2,
+            head_dim=8,
+            max_seq_len=16,
+            dropout=0.0,
+            norm_eps=1e-6,
+            rope_theta=10000.0,
+            init_std=0.02,
+            seed=42,
         )
         torch.manual_seed(42)
         model = M31RTransformer(config)

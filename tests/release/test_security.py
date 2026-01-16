@@ -52,7 +52,7 @@ def test_network_import_detection(tmp_path: Path):
 def test_clean_directory_passes(tmp_path: Path):
     """Test that a clean directory passes all scans."""
     (tmp_path / "clean.py").write_text("x = 1\nprint(x)")
-    
+
     assert not scan_for_secrets(tmp_path)
     assert check_no_telemetry(tmp_path)[0]
     assert check_no_network_calls(tmp_path)[0]

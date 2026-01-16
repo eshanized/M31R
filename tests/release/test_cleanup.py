@@ -30,19 +30,21 @@ def test_clean_preserves_releases(tmp_path: Path):
     (release_dir / "__pycache__").mkdir()  # Should imply protection
 
     result = clean_project(tmp_path)
-    
+
     # The release dir itself must exist
     assert release_dir.exists()
-    
-    # Ideally we don't even scan inside protected dirs, 
+
+    # Ideally we don't even scan inside protected dirs,
     # but our cleaner implementation skips deletion if protected.
     # Check that protected dirs list is populated if it tried to delete
     if (release_dir / "__pycache__").exists():
-        pass # Good
+        pass  # Good
     else:
         # If it deleted it, was it marked protected?
-        assert str(release_dir / "__pycache__") in result.protected_dirs or \
-               str(release_dir) in result.protected_dirs
+        assert (
+            str(release_dir / "__pycache__") in result.protected_dirs
+            or str(release_dir) in result.protected_dirs
+        )
 
 
 def test_clean_temp_files(tmp_path: Path):

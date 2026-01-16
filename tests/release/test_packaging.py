@@ -84,12 +84,10 @@ def test_create_release_immutability(
         )
 
 
-def test_create_release_cleanup_on_failure(
-    tmp_path: Path, mock_checkpoint_dir: Path
-):
+def test_create_release_cleanup_on_failure(tmp_path: Path, mock_checkpoint_dir: Path):
     """Test that partial releases are cleaned up on failure."""
     output_root = tmp_path / "releases"
-    
+
     # Missing tokenizer will cause failure
     with pytest.raises(FileNotFoundError):
         create_release(

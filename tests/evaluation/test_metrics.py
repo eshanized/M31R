@@ -83,10 +83,14 @@ def _make_result(
     passed: bool = True,
 ) -> TaskResult:
     """Build a TaskResult for testing without needing real compile/test data."""
-    cr = CompileResult(success=compiled, exit_code=0 if compiled else 1, stdout="", stderr="", elapsed_seconds=0.1)
+    cr = CompileResult(
+        success=compiled, exit_code=0 if compiled else 1, stdout="", stderr="", elapsed_seconds=0.1
+    )
     tr = None
     if compiled:
-        tr = TestResult(success=passed, exit_code=0 if passed else 1, stdout="", stderr="", elapsed_seconds=0.05)
+        tr = TestResult(
+            success=passed, exit_code=0 if passed else 1, stdout="", stderr="", elapsed_seconds=0.05
+        )
 
     return TaskResult(
         task_id=task_id,

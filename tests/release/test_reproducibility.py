@@ -58,7 +58,7 @@ def test_lockfile_roundtrip(tmp_path):
     """Test writing and reading lockfiles."""
     snap = freeze_environment()
     path = tmp_path / "requirements.lock"
-    
+
     write_lockfile(snap, path)
     loaded = load_lockfile(path)
 

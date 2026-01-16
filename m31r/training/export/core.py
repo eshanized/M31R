@@ -80,6 +80,7 @@ def export_model(
     # Copy model weights
     weights_output = output_dir / "model.pt"
     import shutil
+
     shutil.copy2(model_path, weights_output)
 
     # Compute checksum

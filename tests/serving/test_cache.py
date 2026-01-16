@@ -13,8 +13,11 @@ class TestKVCacheBasics:
 
     def test_initial_state(self) -> None:
         cache = KVCache(
-            n_layers=2, n_heads=4, head_dim=8,
-            max_seq_len=32, device=torch.device("cpu"),
+            n_layers=2,
+            n_heads=4,
+            head_dim=8,
+            max_seq_len=32,
+            device=torch.device("cpu"),
         )
         assert cache.current_length == 0
         assert cache.max_length == 32
@@ -23,8 +26,11 @@ class TestKVCacheBasics:
 
     def test_update_and_advance(self) -> None:
         cache = KVCache(
-            n_layers=2, n_heads=4, head_dim=8,
-            max_seq_len=32, device=torch.device("cpu"),
+            n_layers=2,
+            n_heads=4,
+            head_dim=8,
+            max_seq_len=32,
+            device=torch.device("cpu"),
         )
 
         new_k = torch.randn(1, 4, 1, 8)
@@ -39,8 +45,11 @@ class TestKVCacheBasics:
 
     def test_accumulates_across_updates(self) -> None:
         cache = KVCache(
-            n_layers=1, n_heads=2, head_dim=4,
-            max_seq_len=16, device=torch.device("cpu"),
+            n_layers=1,
+            n_heads=2,
+            head_dim=4,
+            max_seq_len=16,
+            device=torch.device("cpu"),
         )
 
         for step in range(5):
@@ -54,8 +63,11 @@ class TestKVCacheBasics:
 
     def test_reset_clears_state(self) -> None:
         cache = KVCache(
-            n_layers=1, n_heads=2, head_dim=4,
-            max_seq_len=8, device=torch.device("cpu"),
+            n_layers=1,
+            n_heads=2,
+            head_dim=4,
+            max_seq_len=8,
+            device=torch.device("cpu"),
         )
 
         k = torch.randn(1, 2, 3, 4)
@@ -68,8 +80,11 @@ class TestKVCacheBasics:
 
     def test_overflow_raises(self) -> None:
         cache = KVCache(
-            n_layers=1, n_heads=2, head_dim=4,
-            max_seq_len=4, device=torch.device("cpu"),
+            n_layers=1,
+            n_heads=2,
+            head_dim=4,
+            max_seq_len=4,
+            device=torch.device("cpu"),
         )
 
         # Fill it up
@@ -89,16 +104,22 @@ class TestKVCacheMemory:
 
     def test_memory_tracking(self) -> None:
         cache = KVCache(
-            n_layers=2, n_heads=4, head_dim=8,
-            max_seq_len=16, device=torch.device("cpu"),
+            n_layers=2,
+            n_heads=4,
+            head_dim=8,
+            max_seq_len=16,
+            device=torch.device("cpu"),
         )
         mem = cache.memory_mb()
         assert mem > 0
 
     def test_is_full_at_capacity(self) -> None:
         cache = KVCache(
-            n_layers=1, n_heads=1, head_dim=4,
-            max_seq_len=2, device=torch.device("cpu"),
+            n_layers=1,
+            n_heads=1,
+            head_dim=4,
+            max_seq_len=2,
+            device=torch.device("cpu"),
         )
         cache.advance(2)
         assert cache.is_full

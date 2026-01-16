@@ -41,7 +41,7 @@ def _make_config(**overrides) -> TokenizerConfig:
 def _create_test_corpus() -> list[str]:
     """A small corpus of Rust-ish text for training tests."""
     return [
-        "fn main() { println!(\"Hello, world!\"); }",
+        'fn main() { println!("Hello, world!"); }',
         "pub struct Point { x: f64, y: f64 }",
         "impl Point { fn new(x: f64, y: f64) -> Self { Point { x, y } } }",
         "let values: Vec<i32> = vec![1, 2, 3, 4, 5];",
@@ -124,8 +124,10 @@ def test_train_from_streaming_reader(tmp_path: Path) -> None:
     version_dir = tmp_path / "v1"
     version_dir.mkdir(parents=True)
 
-    entries = [{"content": text, "source": "test", "path": f"test/{i}.rs"}
-               for i, text in enumerate(_create_test_corpus())]
+    entries = [
+        {"content": text, "source": "test", "path": f"test/{i}.rs"}
+        for i, text in enumerate(_create_test_corpus())
+    ]
     lines = [json.dumps(e, sort_keys=True) for e in entries]
     (version_dir / "shard_000000.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
 

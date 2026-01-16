@@ -42,12 +42,16 @@ class TestInferenceEngineForward:
         model2.eval()
 
         engine1 = InferenceEngine(
-            model=model1, tokenizer=None,
-            device=torch.device("cpu"), max_context_length=128,
+            model=model1,
+            tokenizer=None,
+            device=torch.device("cpu"),
+            max_context_length=128,
         )
         engine2 = InferenceEngine(
-            model=model2, tokenizer=None,
-            device=torch.device("cpu"), max_context_length=128,
+            model=model2,
+            tokenizer=None,
+            device=torch.device("cpu"),
+            max_context_length=128,
         )
 
         logits1 = engine1._forward([1, 2, 3])
@@ -66,6 +70,7 @@ class TestEngineGeneration:
             def encode(self, text: str):
                 class Result:
                     ids = [1, 2, 3]
+
                 return Result()
 
             def decode(self, ids: list[int]) -> str:

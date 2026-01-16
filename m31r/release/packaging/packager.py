@@ -36,14 +36,16 @@ from m31r.utils.hashing import compute_sha256
 _logger: logging.Logger = get_logger(__name__)
 
 # These are the only files allowed in a release. Anything else is a violation.
-REQUIRED_RELEASE_FILES: frozenset[str] = frozenset({
-    "model.safetensors",
-    "tokenizer.json",
-    "config.yaml",
-    "metadata.json",
-    "checksum.txt",
-    "README.txt",
-})
+REQUIRED_RELEASE_FILES: frozenset[str] = frozenset(
+    {
+        "model.safetensors",
+        "tokenizer.json",
+        "config.yaml",
+        "metadata.json",
+        "checksum.txt",
+        "README.txt",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -76,8 +78,7 @@ def _find_model_weights(checkpoint_dir: Path) -> Path:
             return matches[0]
 
     raise FileNotFoundError(
-        f"No model weights found in {checkpoint_dir}. "
-        f"Expected .safetensors, .pt, or .bin file."
+        f"No model weights found in {checkpoint_dir}. " f"Expected .safetensors, .pt, or .bin file."
     )
 
 
@@ -94,9 +95,7 @@ def _find_tokenizer(tokenizer_dir: Path) -> Path:
             if candidate.is_file():
                 return candidate
 
-    raise FileNotFoundError(
-        f"No tokenizer.json found in {tokenizer_dir}"
-    )
+    raise FileNotFoundError(f"No tokenizer.json found in {tokenizer_dir}")
 
 
 def _find_config(config_path: Path | None, checkpoint_dir: Path) -> Path:

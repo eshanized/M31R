@@ -34,7 +34,7 @@ def _create_task(task_dir: Path, category: str = "completion", difficulty: str =
         encoding="utf-8",
     )
     (task_dir / "tests.rs").write_text(
-        '#[test]\nfn test_foo() { assert_eq!(foo(), 42); }\n',
+        "#[test]\nfn test_foo() { assert_eq!(foo(), 42); }\n",
         encoding="utf-8",
     )
     (task_dir / "Cargo.toml").write_text(

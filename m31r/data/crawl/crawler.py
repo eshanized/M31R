@@ -120,8 +120,10 @@ def clone_repository(source: SourceConfig, raw_dir: Path) -> RepoSnapshot:
     try:
         subprocess.run(
             [
-                "git", "clone",
-                "--depth", "1",
+                "git",
+                "clone",
+                "--depth",
+                "1",
                 "--single-branch",
                 source.url,
                 str(repo_dir),
@@ -132,13 +134,9 @@ def clone_repository(source: SourceConfig, raw_dir: Path) -> RepoSnapshot:
             timeout=600,
         )
     except subprocess.CalledProcessError as err:
-        raise RuntimeError(
-            f"Git clone failed for {source.name}: {err.stderr.strip()}"
-        ) from err
+        raise RuntimeError(f"Git clone failed for {source.name}: {err.stderr.strip()}") from err
     except subprocess.TimeoutExpired as err:
-        raise RuntimeError(
-            f"Git clone timed out for {source.name} after 600 seconds"
-        ) from err
+        raise RuntimeError(f"Git clone timed out for {source.name} after 600 seconds") from err
 
     _write_crawl_marker(repo_dir, source.commit)
     file_count = _count_files(repo_dir)

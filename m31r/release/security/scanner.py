@@ -38,43 +38,67 @@ class SecurityFinding:
 
 # Patterns that suggest secrets or credentials in files
 _SECRET_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
-    ("api_key", re.compile(r"""(?:api[_-]?key|apikey)\s*[=:]\s*['"][^'"]{8,}['"]""", re.IGNORECASE)),
-    ("secret", re.compile(r"""(?:secret|password|passwd|pwd)\s*[=:]\s*['"][^'"]{8,}['"]""", re.IGNORECASE)),
-    ("token", re.compile(r"""(?:token|auth_token|access_token)\s*[=:]\s*['"][^'"]{8,}['"]""", re.IGNORECASE)),
+    (
+        "api_key",
+        re.compile(r"""(?:api[_-]?key|apikey)\s*[=:]\s*['"][^'"]{8,}['"]""", re.IGNORECASE),
+    ),
+    (
+        "secret",
+        re.compile(r"""(?:secret|password|passwd|pwd)\s*[=:]\s*['"][^'"]{8,}['"]""", re.IGNORECASE),
+    ),
+    (
+        "token",
+        re.compile(
+            r"""(?:token|auth_token|access_token)\s*[=:]\s*['"][^'"]{8,}['"]""", re.IGNORECASE
+        ),
+    ),
     ("aws_key", re.compile(r"""AKIA[0-9A-Z]{16}""")),
     ("private_key", re.compile(r"""-----BEGIN (?:RSA |EC )?PRIVATE KEY-----""")),
     ("github_token", re.compile(r"""gh[ps]_[A-Za-z0-9_]{36,}""")),
 ]
 
 # Imports that indicate telemetry or analytics
-_TELEMETRY_IMPORTS: frozenset[str] = frozenset({
-    "sentry_sdk",
-    "bugsnag",
-    "rollbar",
-    "newrelic",
-    "datadog",
-    "mixpanel",
-    "segment",
-    "amplitude",
-    "posthog",
-    "plausible",
-})
+_TELEMETRY_IMPORTS: frozenset[str] = frozenset(
+    {
+        "sentry_sdk",
+        "bugsnag",
+        "rollbar",
+        "newrelic",
+        "datadog",
+        "mixpanel",
+        "segment",
+        "amplitude",
+        "posthog",
+        "plausible",
+    }
+)
 
 # Imports that indicate network calls (in non-test code)
-_NETWORK_IMPORTS: frozenset[str] = frozenset({
-    "requests",
-    "httpx",
-    "aiohttp",
-    "urllib.request",
-    "http.client",
-    "urllib3",
-    "grpc",
-})
+_NETWORK_IMPORTS: frozenset[str] = frozenset(
+    {
+        "requests",
+        "httpx",
+        "aiohttp",
+        "urllib.request",
+        "http.client",
+        "urllib3",
+        "grpc",
+    }
+)
 
 # File extensions to scan
-_SCANNABLE_EXTENSIONS: frozenset[str] = frozenset({
-    ".py", ".yaml", ".yml", ".json", ".toml", ".cfg", ".ini", ".env",
-})
+_SCANNABLE_EXTENSIONS: frozenset[str] = frozenset(
+    {
+        ".py",
+        ".yaml",
+        ".yml",
+        ".json",
+        ".toml",
+        ".cfg",
+        ".ini",
+        ".env",
+    }
+)
 
 
 def _scan_file_for_patterns(
@@ -91,13 +115,15 @@ def _scan_file_for_patterns(
     for line_num, line in enumerate(content.splitlines(), start=1):
         for pattern_name, pattern in patterns:
             if pattern.search(line):
-                findings.append(SecurityFinding(
-                    severity="high",
-                    category="secret",
-                    file=str(file_path),
-                    line=line_num,
-                    message=f"Potential {pattern_name} detected",
-                ))
+                findings.append(
+                    SecurityFinding(
+                        severity="high",
+                        category="secret",
+                        file=str(file_path),
+                        line=line_num,
+                        message=f"Potential {pattern_name} detected",
+                    )
+                )
     return findings
 
 
@@ -167,13 +193,15 @@ def check_no_telemetry(directory: Path) -> tuple[bool, list[SecurityFinding]]:
                 continue
             for lib in _TELEMETRY_IMPORTS:
                 if lib in stripped:
-                    findings.append(SecurityFinding(
-                        severity="medium",
-                        category="telemetry",
-                        file=str(file_path),
-                        line=line_num,
-                        message=f"Telemetry import detected: {lib}",
-                    ))
+                    findings.append(
+                        SecurityFinding(
+                            severity="medium",
+                            category="telemetry",
+                            file=str(file_path),
+                            line=line_num,
+                            message=f"Telemetry import detected: {lib}",
+                        )
+                    )
 
     _logger.info(
         "Telemetry scan complete",
@@ -217,13 +245,15 @@ def check_no_network_calls(directory: Path) -> tuple[bool, list[SecurityFinding]
                 continue
             for lib in _NETWORK_IMPORTS:
                 if lib in stripped:
-                    findings.append(SecurityFinding(
-                        severity="medium",
-                        category="network",
-                        file=str(file_path),
-                        line=line_num,
-                        message=f"Network library import detected: {lib}",
-                    ))
+                    findings.append(
+                        SecurityFinding(
+                            severity="medium",
+                            category="network",
+                            file=str(file_path),
+                            line=line_num,
+                            message=f"Network library import detected: {lib}",
+                        )
+                    )
 
     _logger.info(
         "Network scan complete",
@@ -259,23 +289,27 @@ def check_file_permissions(directory: Path) -> list[SecurityFinding]:
 
             # Check for world-writable
             if mode & stat.S_IWOTH:
-                findings.append(SecurityFinding(
-                    severity="medium",
-                    category="permissions",
-                    file=str(file_path),
-                    line=0,
-                    message=f"World-writable file: {oct(mode)}",
-                ))
+                findings.append(
+                    SecurityFinding(
+                        severity="medium",
+                        category="permissions",
+                        file=str(file_path),
+                        line=0,
+                        message=f"World-writable file: {oct(mode)}",
+                    )
+                )
 
             # Check for setuid/setgid bits
             if mode & (stat.S_ISUID | stat.S_ISGID):
-                findings.append(SecurityFinding(
-                    severity="high",
-                    category="permissions",
-                    file=str(file_path),
-                    line=0,
-                    message=f"SetUID/SetGID bit set: {oct(mode)}",
-                ))
+                findings.append(
+                    SecurityFinding(
+                        severity="high",
+                        category="permissions",
+                        file=str(file_path),
+                        line=0,
+                        message=f"SetUID/SetGID bit set: {oct(mode)}",
+                    )
+                )
         except OSError:
             continue
 

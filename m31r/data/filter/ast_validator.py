@@ -103,10 +103,31 @@ def _looks_like_rust(content: str) -> bool:
     the remaining noise.
     """
     rust_indicators = [
-        "fn ", "let ", "use ", "mod ", "pub ", "struct ", "impl ",
-        "enum ", "trait ", "match ", "crate", "extern ", "macro_rules!",
-        "async ", "unsafe ", "where ", "self", "mut ", "const ",
-        "type ", "return ", "if ", "for ", "while ", "loop ",
+        "fn ",
+        "let ",
+        "use ",
+        "mod ",
+        "pub ",
+        "struct ",
+        "impl ",
+        "enum ",
+        "trait ",
+        "match ",
+        "crate",
+        "extern ",
+        "macro_rules!",
+        "async ",
+        "unsafe ",
+        "where ",
+        "self",
+        "mut ",
+        "const ",
+        "type ",
+        "return ",
+        "if ",
+        "for ",
+        "while ",
+        "loop ",
     ]
     content_lower = content.lower()
     return any(indicator in content_lower for indicator in rust_indicators)

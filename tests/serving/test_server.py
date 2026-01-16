@@ -68,6 +68,7 @@ class TestAPISchemaValidation:
 
     def test_generate_request_requires_prompt(self) -> None:
         from m31r.serving.api.schema import GenerateRequest
+
         req = GenerateRequest(prompt="hello world")
         assert req.prompt == "hello world"
         assert req.max_tokens == 512

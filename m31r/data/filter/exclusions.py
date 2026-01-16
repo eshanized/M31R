@@ -12,29 +12,54 @@ and must be dropped unconditionally.
 
 from pathlib import PurePosixPath
 
+EXCLUDED_DIRECTORY_NAMES: frozenset[str] = frozenset(
+    {
+        "target",
+        "vendor",
+        "node_modules",
+        "build",
+        "dist",
+        "generated",
+        ".git",
+        ".github",
+        ".hg",
+        ".svn",
+        "__pycache__",
+    }
+)
 
-EXCLUDED_DIRECTORY_NAMES: frozenset[str] = frozenset({
-    "target",
-    "vendor",
-    "node_modules",
-    "build",
-    "dist",
-    "generated",
-    ".git",
-    ".github",
-    ".hg",
-    ".svn",
-    "__pycache__",
-})
-
-EXCLUDED_FILE_EXTENSIONS: frozenset[str] = frozenset({
-    ".exe", ".dll", ".so", ".dylib", ".o", ".a",
-    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".svg",
-    ".zip", ".tar", ".gz", ".bz2", ".xz", ".7z",
-    ".pdf", ".doc", ".docx",
-    ".lock", ".min.js", ".min.css",
-    ".wasm", ".pyc", ".class",
-})
+EXCLUDED_FILE_EXTENSIONS: frozenset[str] = frozenset(
+    {
+        ".exe",
+        ".dll",
+        ".so",
+        ".dylib",
+        ".o",
+        ".a",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".bmp",
+        ".ico",
+        ".svg",
+        ".zip",
+        ".tar",
+        ".gz",
+        ".bz2",
+        ".xz",
+        ".7z",
+        ".pdf",
+        ".doc",
+        ".docx",
+        ".lock",
+        ".min.js",
+        ".min.css",
+        ".wasm",
+        ".pyc",
+        ".class",
+    }
+)
 
 
 def should_exclude_path(file_path: PurePosixPath, excluded_dirs: list[str]) -> bool:

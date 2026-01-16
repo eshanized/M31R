@@ -27,40 +27,48 @@ from m31r.logging.logger import get_logger
 _logger: logging.Logger = get_logger(__name__)
 
 # Directories that are ALWAYS safe to remove
-_SAFE_TO_REMOVE_DIRS: frozenset[str] = frozenset({
-    "__pycache__",
-    ".pytest_cache",
-    ".mypy_cache",
-    ".ruff_cache",
-})
+_SAFE_TO_REMOVE_DIRS: frozenset[str] = frozenset(
+    {
+        "__pycache__",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".ruff_cache",
+    }
+)
 
 # Directory name patterns at project root that are safe to remove
-_ROOT_SAFE_DIRS: frozenset[str] = frozenset({
-    "build",
-    "dist",
-})
+_ROOT_SAFE_DIRS: frozenset[str] = frozenset(
+    {
+        "build",
+        "dist",
+    }
+)
 
 # File patterns that are safe to remove
-_SAFE_TO_REMOVE_PATTERNS: frozenset[str] = frozenset({
-    "*.egg-info",
-})
+_SAFE_TO_REMOVE_PATTERNS: frozenset[str] = frozenset(
+    {
+        "*.egg-info",
+    }
+)
 
 # Directories that must NEVER be deleted
-_PROTECTED_DIRS: frozenset[str] = frozenset({
-    "release",
-    "releases",
-    "checkpoints",
-    "experiments",
-    "data",
-    "docs",
-    "configs",
-    "m31r",
-    "tests",
-    "scripts",
-    "tools",
-    "benchmarks",
-    ".git",
-})
+_PROTECTED_DIRS: frozenset[str] = frozenset(
+    {
+        "release",
+        "releases",
+        "checkpoints",
+        "experiments",
+        "data",
+        "docs",
+        "configs",
+        "m31r",
+        "tests",
+        "scripts",
+        "tools",
+        "benchmarks",
+        ".git",
+    }
+)
 
 
 @dataclass(frozen=True)

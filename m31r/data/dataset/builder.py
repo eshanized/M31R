@@ -127,8 +127,7 @@ def build_dataset(
     shard_infos = writer.finalize()
 
     source_list = [
-        {"name": name, "commit": commit}
-        for name, commit in sorted(sources_seen.items())
+        {"name": name, "commit": commit} for name, commit in sorted(sources_seen.items())
     ]
 
     manifest = build_manifest(shard_infos, source_list, len(files))

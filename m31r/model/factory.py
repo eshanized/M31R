@@ -211,8 +211,6 @@ def build_model_from_preset(
     """
     config_fn = PRESETS.get(preset)
     if config_fn is None:
-        raise ValueError(
-            f"Unknown preset '{preset}'. Available: {list(PRESETS.keys())}"
-        )
+        raise ValueError(f"Unknown preset '{preset}'. Available: {list(PRESETS.keys())}")
     config = config_fn(vocab_size=vocab_size, seed=seed)
     return build_model(config)

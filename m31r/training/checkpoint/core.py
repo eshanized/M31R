@@ -165,7 +165,9 @@ def load_checkpoint(
     if optimizer is not None:
         opt_path = checkpoint_dir / "optimizer.pt"
         if opt_path.is_file():
-            optimizer.load_state_dict(torch.load(opt_path, map_location=map_location, weights_only=True))
+            optimizer.load_state_dict(
+                torch.load(opt_path, map_location=map_location, weights_only=True)
+            )
 
     # Restore RNG states
     rng_path = checkpoint_dir / "rng_state.pt"

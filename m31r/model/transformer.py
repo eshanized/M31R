@@ -47,17 +47,19 @@ class M31RTransformer(nn.Module):
         self.tok_embeddings = TokenEmbedding(config.vocab_size, config.dim)
 
         # Transformer blocks
-        self.layers = nn.ModuleList([
-            TransformerBlock(
-                dim=config.dim,
-                n_heads=config.n_heads,
-                head_dim=config.head_dim,
-                intermediate_dim=config.intermediate_dim,
-                dropout=config.dropout,
-                norm_eps=config.norm_eps,
-            )
-            for _ in range(config.n_layers)
-        ])
+        self.layers = nn.ModuleList(
+            [
+                TransformerBlock(
+                    dim=config.dim,
+                    n_heads=config.n_heads,
+                    head_dim=config.head_dim,
+                    intermediate_dim=config.intermediate_dim,
+                    dropout=config.dropout,
+                    norm_eps=config.norm_eps,
+                )
+                for _ in range(config.n_layers)
+            ]
+        )
 
         # Final normalization
         self.norm = RMSNorm(config.dim, eps=config.norm_eps)

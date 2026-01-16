@@ -143,14 +143,17 @@ class M31RRequestHandler(BaseHTTPRequestHandler):
                 self._stream_response(engine, request.prompt, gen_config)
             else:
                 response = engine.generate(request.prompt, gen_config)
-                self._send_json(200, {
-                    "text": response.text,
-                    "tokens_generated": response.tokens_generated,
-                    "prompt_tokens": response.prompt_tokens,
-                    "total_time_ms": response.total_time_ms,
-                    "tokens_per_second": response.tokens_per_second,
-                    "finish_reason": response.finish_reason,
-                })
+                self._send_json(
+                    200,
+                    {
+                        "text": response.text,
+                        "tokens_generated": response.tokens_generated,
+                        "prompt_tokens": response.prompt_tokens,
+                        "total_time_ms": response.total_time_ms,
+                        "tokens_per_second": response.tokens_per_second,
+                        "finish_reason": response.finish_reason,
+                    },
+                )
 
         except Exception as err:
             logger.error("Generation failed", extra={"error": str(err)}, exc_info=True)
@@ -176,14 +179,17 @@ class M31RRequestHandler(BaseHTTPRequestHandler):
 
             engine: InferenceEngine = self.server.engine
             response = engine.generate(prefix, gen_config)
-            self._send_json(200, {
-                "text": response.text,
-                "tokens_generated": response.tokens_generated,
-                "prompt_tokens": response.prompt_tokens,
-                "total_time_ms": response.total_time_ms,
-                "tokens_per_second": response.tokens_per_second,
-                "finish_reason": response.finish_reason,
-            })
+            self._send_json(
+                200,
+                {
+                    "text": response.text,
+                    "tokens_generated": response.tokens_generated,
+                    "prompt_tokens": response.prompt_tokens,
+                    "total_time_ms": response.total_time_ms,
+                    "tokens_per_second": response.tokens_per_second,
+                    "finish_reason": response.finish_reason,
+                },
+            )
 
         except Exception as err:
             logger.error("Completion failed", extra={"error": str(err)}, exc_info=True)
@@ -211,14 +217,17 @@ class M31RRequestHandler(BaseHTTPRequestHandler):
 
             engine: InferenceEngine = self.server.engine
             response = engine.generate(prompt, gen_config)
-            self._send_json(200, {
-                "text": response.text,
-                "tokens_generated": response.tokens_generated,
-                "prompt_tokens": response.prompt_tokens,
-                "total_time_ms": response.total_time_ms,
-                "tokens_per_second": response.tokens_per_second,
-                "finish_reason": response.finish_reason,
-            })
+            self._send_json(
+                200,
+                {
+                    "text": response.text,
+                    "tokens_generated": response.tokens_generated,
+                    "prompt_tokens": response.prompt_tokens,
+                    "total_time_ms": response.total_time_ms,
+                    "tokens_per_second": response.tokens_per_second,
+                    "finish_reason": response.finish_reason,
+                },
+            )
 
         except Exception as err:
             logger.error("FIM failed", extra={"error": str(err)}, exc_info=True)
@@ -226,16 +235,20 @@ class M31RRequestHandler(BaseHTTPRequestHandler):
 
     def _handle_status(self) -> None:
         status: ServerStatus = self.server.status
-        self._send_json(200, {
-            "model_loaded": status.model_loaded,
-            "model_path": status.model_path,
-            "device": status.device,
-            "quantization": status.quantization,
-            "max_context_length": status.max_context_length,
-            "uptime_seconds": round(time.monotonic() - self.server.start_time, 2),
-            "requests_served": self.server.engine.metrics.total_requests
-            if self.server.engine else 0,
-        })
+        self._send_json(
+            200,
+            {
+                "model_loaded": status.model_loaded,
+                "model_path": status.model_path,
+                "device": status.device,
+                "quantization": status.quantization,
+                "max_context_length": status.max_context_length,
+                "uptime_seconds": round(time.monotonic() - self.server.start_time, 2),
+                "requests_served": (
+                    self.server.engine.metrics.total_requests if self.server.engine else 0
+                ),
+            },
+        )
 
     def _handle_shutdown(self) -> None:
         self._send_json(200, {"message": "Server shutting down"})
@@ -263,13 +276,15 @@ class M31RRequestHandler(BaseHTTPRequestHandler):
 
         try:
             for chunk in engine.generate_stream(prompt, config):
-                event_data = json.dumps({
-                    "token": chunk.token_text,
-                    "token_id": chunk.token_id,
-                    "position": chunk.position,
-                    "elapsed_ms": round(chunk.elapsed_ms, 2),
-                    "done": chunk.done,
-                })
+                event_data = json.dumps(
+                    {
+                        "token": chunk.token_text,
+                        "token_id": chunk.token_id,
+                        "position": chunk.position,
+                        "elapsed_ms": round(chunk.elapsed_ms, 2),
+                        "done": chunk.done,
+                    }
+                )
                 self.wfile.write(f"data: {event_data}\n\n".encode("utf-8"))
                 self.wfile.flush()
 

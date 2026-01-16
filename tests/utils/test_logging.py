@@ -67,17 +67,13 @@ class TestJsonOutput:
 
 
 class TestLogLevelFiltering:
-    def test_debug_messages_hidden_at_info_level(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_debug_messages_hidden_at_info_level(self, capsys: pytest.CaptureFixture[str]) -> None:
         logger = get_logger("m31r.test.level_filter", log_level="INFO")
         logger.debug("this should not appear")
         captured = capsys.readouterr()
         assert captured.out.strip() == ""
 
-    def test_info_messages_shown_at_info_level(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_info_messages_shown_at_info_level(self, capsys: pytest.CaptureFixture[str]) -> None:
         logger = get_logger("m31r.test.level_show", log_level="INFO")
         logger.info("this should appear")
         captured = capsys.readouterr()

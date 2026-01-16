@@ -76,9 +76,7 @@ def _find_model_weights(model_dir: Path) -> Path:
     if pt_files:
         return pt_files[0]
 
-    raise FileNotFoundError(
-        f"No model weights (.pt file) found in {model_dir}"
-    )
+    raise FileNotFoundError(f"No model weights (.pt file) found in {model_dir}")
 
 
 def _verify_checksum(weights_path: Path, expected_hash: str | None) -> None:
@@ -241,6 +239,7 @@ def _load_tokenizer(tokenizer_dir: Path) -> object:
 
     try:
         from tokenizers import Tokenizer as HFTokenizer
+
         tokenizer = HFTokenizer.from_file(str(tokenizer_path))
         logger.info("Tokenizer loaded", extra={"path": str(tokenizer_path)})
         return tokenizer

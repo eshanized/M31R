@@ -86,15 +86,20 @@ class TestParameterCount:
     def test_parameter_count_m31r_tiny(self) -> None:
         """M31R-Tiny should have ~17M parameters (dim=384, layers=6, heads=6)."""
         config = TransformerModelConfig(
-            vocab_size=16384, dim=384, n_layers=6, n_heads=6, head_dim=64,
-            ffn_mult=4, max_seq_len=1024, dropout=0.0, seed=42,
+            vocab_size=16384,
+            dim=384,
+            n_layers=6,
+            n_heads=6,
+            head_dim=64,
+            ffn_mult=4,
+            max_seq_len=1024,
+            dropout=0.0,
+            seed=42,
         )
         model = M31RTransformer(config)
         count = model.count_parameters()
         # Actual: ~16.9M for these dimensions
-        assert 14_000_000 < count < 20_000_000, (
-            f"M31R-Tiny has {count:,} params, expected ~17M"
-        )
+        assert 14_000_000 < count < 20_000_000, f"M31R-Tiny has {count:,} params, expected ~17M"
 
 
 class TestDeterminism:
@@ -123,12 +128,22 @@ class TestDeterminism:
     def test_different_seeds_differ(self) -> None:
         """Different seeds must produce different weights."""
         config1 = TransformerModelConfig(
-            vocab_size=256, dim=64, n_layers=2, n_heads=4,
-            head_dim=16, max_seq_len=32, seed=42,
+            vocab_size=256,
+            dim=64,
+            n_layers=2,
+            n_heads=4,
+            head_dim=16,
+            max_seq_len=32,
+            seed=42,
         )
         config2 = TransformerModelConfig(
-            vocab_size=256, dim=64, n_layers=2, n_heads=4,
-            head_dim=16, max_seq_len=32, seed=123,
+            vocab_size=256,
+            dim=64,
+            n_layers=2,
+            n_heads=4,
+            head_dim=16,
+            max_seq_len=32,
+            seed=123,
         )
         model1 = M31RTransformer(config1)
         model2 = M31RTransformer(config2)
@@ -136,8 +151,7 @@ class TestDeterminism:
         params1 = list(model1.parameters())
         params2 = list(model2.parameters())
         any_different = any(
-            not torch.allclose(p1, p2, atol=1e-6)
-            for p1, p2 in zip(params1, params2)
+            not torch.allclose(p1, p2, atol=1e-6) for p1, p2 in zip(params1, params2)
         )
         assert any_different
 
@@ -189,9 +203,7 @@ class TestOverfit:
             optimizer.step()
             final_loss = loss.item()
 
-        assert final_loss < 0.5, (
-            f"Model failed to overfit: loss={final_loss:.4f} after 200 steps"
-        )
+        assert final_loss < 0.5, f"Model failed to overfit: loss={final_loss:.4f} after 200 steps"
 
 
 class TestConfigScaling:
@@ -200,12 +212,22 @@ class TestConfigScaling:
     def test_more_layers_more_params(self) -> None:
         """More layers must produce more parameters."""
         config_2 = TransformerModelConfig(
-            vocab_size=256, dim=64, n_layers=2, n_heads=4, head_dim=16,
-            max_seq_len=32, seed=42,
+            vocab_size=256,
+            dim=64,
+            n_layers=2,
+            n_heads=4,
+            head_dim=16,
+            max_seq_len=32,
+            seed=42,
         )
         config_4 = TransformerModelConfig(
-            vocab_size=256, dim=64, n_layers=4, n_heads=4, head_dim=16,
-            max_seq_len=32, seed=42,
+            vocab_size=256,
+            dim=64,
+            n_layers=4,
+            n_heads=4,
+            head_dim=16,
+            max_seq_len=32,
+            seed=42,
         )
         model_2 = M31RTransformer(config_2)
         model_4 = M31RTransformer(config_4)
@@ -214,12 +236,22 @@ class TestConfigScaling:
     def test_larger_dim_more_params(self) -> None:
         """Larger hidden dim must produce more parameters."""
         config_small = TransformerModelConfig(
-            vocab_size=256, dim=64, n_layers=2, n_heads=4, head_dim=16,
-            max_seq_len=32, seed=42,
+            vocab_size=256,
+            dim=64,
+            n_layers=2,
+            n_heads=4,
+            head_dim=16,
+            max_seq_len=32,
+            seed=42,
         )
         config_large = TransformerModelConfig(
-            vocab_size=256, dim=128, n_layers=2, n_heads=4, head_dim=32,
-            max_seq_len=32, seed=42,
+            vocab_size=256,
+            dim=128,
+            n_layers=2,
+            n_heads=4,
+            head_dim=32,
+            max_seq_len=32,
+            seed=42,
         )
         model_small = M31RTransformer(config_small)
         model_large = M31RTransformer(config_large)
@@ -232,8 +264,15 @@ class TestCPUMemory:
     def test_tiny_model_fits_in_memory(self) -> None:
         """Tiny model construction and forward pass must work on CPU."""
         config = TransformerModelConfig(
-            vocab_size=16384, dim=384, n_layers=6, n_heads=6, head_dim=64,
-            ffn_mult=4, max_seq_len=1024, dropout=0.0, seed=42,
+            vocab_size=16384,
+            dim=384,
+            n_layers=6,
+            n_heads=6,
+            head_dim=64,
+            ffn_mult=4,
+            max_seq_len=1024,
+            dropout=0.0,
+            seed=42,
         )
         model = M31RTransformer(config)
         model.eval()

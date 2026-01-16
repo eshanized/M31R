@@ -104,8 +104,8 @@ class KVCache:
                 f"but max is {self._max_seq_len}"
             )
 
-        self._keys[layer_idx][:, :, self._current_len:end_pos, :] = new_key
-        self._values[layer_idx][:, :, self._current_len:end_pos, :] = new_value
+        self._keys[layer_idx][:, :, self._current_len : end_pos, :] = new_key
+        self._values[layer_idx][:, :, self._current_len : end_pos, :] = new_value
 
         return (
             self._keys[layer_idx][:, :, :end_pos, :],

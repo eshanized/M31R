@@ -21,7 +21,7 @@ def test_checksum_generation(tmp_path: Path):
     (tmp_path / "file2.txt").write_text("content2")
 
     checksums = generate_checksums(tmp_path)
-    
+
     assert len(checksums) == 2
     assert checksums["file1.txt"] == compute_sha256(tmp_path / "file1.txt")
     assert checksums["file2.txt"] == compute_sha256(tmp_path / "file2.txt")
@@ -58,7 +58,7 @@ def test_checksum_verification_missing_file(tmp_path: Path):
     """Test verification fails when a file is missing."""
     (tmp_path / "kept.txt").write_text("kept")
     (tmp_path / "lost.txt").write_text("lost")
-    
+
     checksums = generate_checksums(tmp_path)
     write_checksum_file(tmp_path, checksums)
 

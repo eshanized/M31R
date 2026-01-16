@@ -109,9 +109,7 @@ class TestIntegrityVerification:
 
         actual_hash = compute_sha256_bytes(shard_content.encode("utf-8"))
         checksums_path = tmp_path / "checksums.txt"
-        checksums_path.write_text(
-            f"{actual_hash}  shard_000000.jsonl\n", encoding="utf-8"
-        )
+        checksums_path.write_text(f"{actual_hash}  shard_000000.jsonl\n", encoding="utf-8")
 
         assert verify_dataset_integrity(tmp_path) is True
 
@@ -132,7 +130,5 @@ class TestIntegrityVerification:
 
     def test_missing_shard_file_fails(self, tmp_path: Path) -> None:
         checksums_path = tmp_path / "checksums.txt"
-        checksums_path.write_text(
-            "abcdef  shard_000000.jsonl\n", encoding="utf-8"
-        )
+        checksums_path.write_text("abcdef  shard_000000.jsonl\n", encoding="utf-8")
         assert verify_dataset_integrity(tmp_path) is False

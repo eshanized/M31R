@@ -29,10 +29,7 @@ def compute_shard_checksums(shard_dir: Path) -> dict[str, str]:
     """
     checksums: dict[str, str] = {}
 
-    shard_files = sorted(
-        f for f in shard_dir.iterdir()
-        if f.is_file() and f.suffix == ".jsonl"
-    )
+    shard_files = sorted(f for f in shard_dir.iterdir() if f.is_file() and f.suffix == ".jsonl")
 
     for shard_file in shard_files:
         checksums[shard_file.name] = compute_sha256(shard_file)

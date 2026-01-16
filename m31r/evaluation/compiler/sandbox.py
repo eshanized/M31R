@@ -36,9 +36,7 @@ def _validate_sandbox_path(path: Path, sandbox_root: Path) -> None:
     resolved = path.resolve()
     root_resolved = sandbox_root.resolve()
     if not str(resolved).startswith(str(root_resolved)):
-        raise ValueError(
-            f"Path escapes sandbox: {path} resolves outside {sandbox_root}"
-        )
+        raise ValueError(f"Path escapes sandbox: {path} resolves outside {sandbox_root}")
 
 
 def create_sandbox(
@@ -57,17 +55,20 @@ def create_sandbox(
     If the task has context files (like a lib.rs or utils.rs), those get
     written into src/ as well.
     """
-    sandbox_dir = Path(tempfile.mkdtemp(
-        prefix="m31r_eval_",
-        dir=str(base_dir) if base_dir else None,
-    ))
+    sandbox_dir = Path(
+        tempfile.mkdtemp(
+            prefix="m31r_eval_",
+            dir=str(base_dir) if base_dir else None,
+        )
+    )
 
     try:
         src_dir = sandbox_dir / "src"
         src_dir.mkdir()
 
         (sandbox_dir / "Cargo.toml").write_text(
-            task.cargo_toml, encoding="utf-8",
+            task.cargo_toml,
+            encoding="utf-8",
         )
 
         # The generated code goes into src/main.rs. For library-style tasks,
@@ -131,7 +132,9 @@ class SandboxContext:
 
     def __enter__(self) -> Path:
         self._sandbox_dir = create_sandbox(
-            self._task, self._generated_code, self._base_dir,
+            self._task,
+            self._generated_code,
+            self._base_dir,
         )
         return self._sandbox_dir
 

@@ -27,14 +27,16 @@ from m31r.release.manifests.manifest import _REQUIRED_MANIFEST_FIELDS
 _logger: logging.Logger = get_logger(__name__)
 
 # Every valid release must contain exactly these files
-REQUIRED_FILES: frozenset[str] = frozenset({
-    "model.safetensors",
-    "tokenizer.json",
-    "config.yaml",
-    "metadata.json",
-    "checksum.txt",
-    "README.txt",
-})
+REQUIRED_FILES: frozenset[str] = frozenset(
+    {
+        "model.safetensors",
+        "tokenizer.json",
+        "config.yaml",
+        "metadata.json",
+        "checksum.txt",
+        "README.txt",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -187,9 +189,7 @@ def verify_release(release_dir: Path) -> VerificationReport:
     else:
         failed.append("checksums_valid")
         if checksum_result.mismatches:
-            all_errors.extend(
-                [f"Checksum mismatch: {f}" for f in checksum_result.mismatches]
-            )
+            all_errors.extend([f"Checksum mismatch: {f}" for f in checksum_result.mismatches])
         if checksum_result.missing_files:
             all_errors.extend(
                 [f"Missing file in checksums: {f}" for f in checksum_result.missing_files]

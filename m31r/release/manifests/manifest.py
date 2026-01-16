@@ -54,17 +54,19 @@ class ArtifactManifest:
     metrics_summary: dict[str, object] = field(default_factory=dict)
 
 
-_REQUIRED_MANIFEST_FIELDS: frozenset[str] = frozenset({
-    "version",
-    "dataset_hash",
-    "tokenizer_hash",
-    "model_hash",
-    "config_hash",
-    "git_commit",
-    "training_seed",
-    "timestamp",
-    "m31r_version",
-})
+_REQUIRED_MANIFEST_FIELDS: frozenset[str] = frozenset(
+    {
+        "version",
+        "dataset_hash",
+        "tokenizer_hash",
+        "model_hash",
+        "config_hash",
+        "git_commit",
+        "training_seed",
+        "timestamp",
+        "m31r_version",
+    }
+)
 
 
 def get_git_commit() -> str:
@@ -190,9 +192,7 @@ def load_manifest(path: Path) -> ArtifactManifest:
     # Validate all required fields present
     missing = _REQUIRED_MANIFEST_FIELDS - set(data.keys())
     if missing:
-        raise ValueError(
-            f"Manifest is missing required fields: {', '.join(sorted(missing))}"
-        )
+        raise ValueError(f"Manifest is missing required fields: {', '.join(sorted(missing))}")
 
     manifest = ArtifactManifest(
         version=str(data["version"]),

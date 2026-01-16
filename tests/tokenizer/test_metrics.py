@@ -28,7 +28,7 @@ def _train_test_tokenizer():
     )
 
     corpus = [
-        "fn main() { println!(\"Hello\"); }",
+        'fn main() { println!("Hello"); }',
         "struct Point { x: f64, y: f64 }",
         "let v: Vec<i32> = vec![1, 2, 3];",
     ] * 20
@@ -57,7 +57,7 @@ def test_unk_rate_low_for_training_data() -> None:
     """Text similar to training data should have a very low unknown token rate."""
     tokenizer = _train_test_tokenizer()
     sample = [
-        "fn main() { println!(\"Hello\"); }",
+        'fn main() { println!("Hello"); }',
         "struct Point { x: f64, y: f64 }",
     ]
     metrics = compute_metrics(tokenizer, sample)

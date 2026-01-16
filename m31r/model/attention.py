@@ -92,7 +92,9 @@ class CausalSelfAttention(nn.Module):
         # This automatically uses FlashAttention when available
         dropout_p = self.dropout if self.training else 0.0
         output = F.scaled_dot_product_attention(
-            xq, xk, xv,
+            xq,
+            xk,
+            xv,
             attn_mask=None,
             dropout_p=dropout_p,
             is_causal=True,

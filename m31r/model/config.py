@@ -59,9 +59,19 @@ class TransformerModelConfig:
     """
 
     __slots__ = (
-        "vocab_size", "dim", "n_layers", "n_heads", "head_dim",
-        "ffn_mult", "max_seq_len", "dropout", "norm_eps", "rope_theta",
-        "init_std", "seed", "multiple_of",
+        "vocab_size",
+        "dim",
+        "n_layers",
+        "n_heads",
+        "head_dim",
+        "ffn_mult",
+        "max_seq_len",
+        "dropout",
+        "norm_eps",
+        "rope_theta",
+        "init_std",
+        "seed",
+        "multiple_of",
     )
 
     def __init__(

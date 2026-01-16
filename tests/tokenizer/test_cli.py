@@ -47,6 +47,7 @@ def _make_tokenizer_config_file(tmp_path: Path) -> Path:
 def _make_args(**kwargs):
     """Build a fake argparse.Namespace for testing CLI handlers."""
     import argparse
+
     defaults = {
         "config": None,
         "log_level": "DEBUG",

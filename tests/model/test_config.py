@@ -47,7 +47,11 @@ class TestTransformerModelConfig:
     def test_defaults(self) -> None:
         """Verify default parameter values."""
         config = TransformerModelConfig(
-            vocab_size=16384, dim=384, n_layers=6, n_heads=6, head_dim=64,
+            vocab_size=16384,
+            dim=384,
+            n_layers=6,
+            n_heads=6,
+            head_dim=64,
         )
         assert config.ffn_mult == 4
         assert config.max_seq_len == 2048
@@ -61,7 +65,11 @@ class TestTransformerModelConfig:
     def test_intermediate_dim_property(self) -> None:
         """Computed intermediate_dim must match compute_intermediate_size."""
         config = TransformerModelConfig(
-            vocab_size=16384, dim=384, n_layers=6, n_heads=6, head_dim=64,
+            vocab_size=16384,
+            dim=384,
+            n_layers=6,
+            n_heads=6,
+            head_dim=64,
         )
         expected = compute_intermediate_size(384, 4, 256)
         assert config.intermediate_dim == expected
@@ -69,24 +77,40 @@ class TestTransformerModelConfig:
     def test_scaling_tiny_to_large(self) -> None:
         """Different dims produce different intermediate sizes."""
         tiny = TransformerModelConfig(
-            vocab_size=16384, dim=384, n_layers=6, n_heads=6, head_dim=64,
+            vocab_size=16384,
+            dim=384,
+            n_layers=6,
+            n_heads=6,
+            head_dim=64,
         )
         large = TransformerModelConfig(
-            vocab_size=16384, dim=2048, n_layers=32, n_heads=32, head_dim=64,
+            vocab_size=16384,
+            dim=2048,
+            n_layers=32,
+            n_heads=32,
+            head_dim=64,
         )
         assert large.intermediate_dim > tiny.intermediate_dim
 
     def test_slots(self) -> None:
         """Config uses __slots__ for memory efficiency."""
         config = TransformerModelConfig(
-            vocab_size=16384, dim=384, n_layers=6, n_heads=6, head_dim=64,
+            vocab_size=16384,
+            dim=384,
+            n_layers=6,
+            n_heads=6,
+            head_dim=64,
         )
         assert hasattr(config, "__slots__")
 
     def test_all_fields_accessible(self) -> None:
         """Every field in __slots__ must be accessible."""
         config = TransformerModelConfig(
-            vocab_size=16384, dim=384, n_layers=6, n_heads=6, head_dim=64,
+            vocab_size=16384,
+            dim=384,
+            n_layers=6,
+            n_heads=6,
+            head_dim=64,
         )
         for slot in TransformerModelConfig.__slots__:
             assert hasattr(config, slot)

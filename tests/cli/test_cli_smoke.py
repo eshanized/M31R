@@ -51,8 +51,17 @@ class TestHelpTexts:
     @pytest.mark.parametrize(
         "subcommand",
         [
-            "crawl", "filter", "dataset", "tokenizer", "train",
-            "eval", "serve", "generate", "export", "verify", "info",
+            "crawl",
+            "filter",
+            "dataset",
+            "tokenizer",
+            "train",
+            "eval",
+            "serve",
+            "generate",
+            "export",
+            "verify",
+            "info",
         ],
     )
     def test_subcommand_help_exits_zero(self, subcommand: str) -> None:

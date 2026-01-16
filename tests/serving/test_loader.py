@@ -54,6 +54,7 @@ class TestChecksumVerification:
         weights.write_bytes(b"test data for hashing")
 
         from m31r.utils.hashing import compute_sha256
+
         correct_hash = compute_sha256(weights)
 
         # Should not raise

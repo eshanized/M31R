@@ -25,10 +25,14 @@ def _write_shard(shard_dir: Path, filename: str, entries: list[dict]) -> None:
 def test_reads_content_from_shards(tmp_path: Path) -> None:
     """The reader should yield the 'content' field from each JSONL line."""
     version_dir = tmp_path / "v1"
-    _write_shard(version_dir, "shard_000000.jsonl", [
-        {"source": "a", "path": "a/main.rs", "content": "fn main() {}"},
-        {"source": "a", "path": "a/lib.rs", "content": "pub fn hello() {}"},
-    ])
+    _write_shard(
+        version_dir,
+        "shard_000000.jsonl",
+        [
+            {"source": "a", "path": "a/main.rs", "content": "fn main() {}"},
+            {"source": "a", "path": "a/lib.rs", "content": "pub fn hello() {}"},
+        ],
+    )
 
     results = list(stream_corpus(version_dir))
     assert results == ["fn main() {}", "pub fn hello() {}"]
@@ -37,12 +41,20 @@ def test_reads_content_from_shards(tmp_path: Path) -> None:
 def test_reads_multiple_shards_in_order(tmp_path: Path) -> None:
     """When there are multiple shards, they should be read in sorted filename order."""
     version_dir = tmp_path / "v1"
-    _write_shard(version_dir, "shard_000001.jsonl", [
-        {"source": "b", "path": "b/mod.rs", "content": "mod second;"},
-    ])
-    _write_shard(version_dir, "shard_000000.jsonl", [
-        {"source": "a", "path": "a/mod.rs", "content": "mod first;"},
-    ])
+    _write_shard(
+        version_dir,
+        "shard_000001.jsonl",
+        [
+            {"source": "b", "path": "b/mod.rs", "content": "mod second;"},
+        ],
+    )
+    _write_shard(
+        version_dir,
+        "shard_000000.jsonl",
+        [
+            {"source": "a", "path": "a/mod.rs", "content": "mod first;"},
+        ],
+    )
 
     results = list(stream_corpus(version_dir))
     assert results == ["mod first;", "mod second;"]
@@ -51,10 +63,14 @@ def test_reads_multiple_shards_in_order(tmp_path: Path) -> None:
 def test_skips_lines_without_content(tmp_path: Path) -> None:
     """Lines that don't have a 'content' field should be silently skipped."""
     version_dir = tmp_path / "v1"
-    _write_shard(version_dir, "shard_000000.jsonl", [
-        {"source": "a", "path": "a/main.rs"},
-        {"source": "a", "path": "a/lib.rs", "content": "valid"},
-    ])
+    _write_shard(
+        version_dir,
+        "shard_000000.jsonl",
+        [
+            {"source": "a", "path": "a/main.rs"},
+            {"source": "a", "path": "a/lib.rs", "content": "valid"},
+        ],
+    )
 
     results = list(stream_corpus(version_dir))
     assert results == ["valid"]

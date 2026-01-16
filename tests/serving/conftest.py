@@ -62,6 +62,7 @@ def model_export_dir(tmp_path: Path, tiny_model: M31RTransformer) -> Path:
 
     # Compute real checksum
     from m31r.utils.hashing import compute_sha256
+
     weights_hash = compute_sha256(weights_path)
 
     metadata = {

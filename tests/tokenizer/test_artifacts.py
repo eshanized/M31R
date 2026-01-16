@@ -33,7 +33,7 @@ def _train_and_bundle(tmp_path: Path) -> tuple:
     )
 
     corpus = [
-        "fn main() { println!(\"Hello\"); }",
+        'fn main() { println!("Hello"); }',
         "struct Point { x: f64, y: f64 }",
         "let v: Vec<i32> = vec![1, 2, 3];",
     ] * 20
@@ -76,8 +76,15 @@ def test_metadata_has_required_fields(tmp_path: Path) -> None:
     metadata = json.loads((bundle_dir / "metadata.json").read_text(encoding="utf-8"))
 
     required = [
-        "version_hash", "dataset_hash", "config_hash", "tokenizer_type",
-        "vocab_size", "target_vocab_size", "seed", "special_tokens", "created_at",
+        "version_hash",
+        "dataset_hash",
+        "config_hash",
+        "tokenizer_type",
+        "vocab_size",
+        "target_vocab_size",
+        "seed",
+        "special_tokens",
+        "created_at",
     ]
     for field in required:
         assert field in metadata, f"Missing metadata field: {field}"

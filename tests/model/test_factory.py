@@ -68,9 +68,9 @@ class TestPresetConfigs:
         """Every preset must return a TransformerModelConfig."""
         for name, config_fn in PRESETS.items():
             config = config_fn()
-            assert isinstance(config, TransformerModelConfig), (
-                f"Preset '{name}' did not return TransformerModelConfig"
-            )
+            assert isinstance(
+                config, TransformerModelConfig
+            ), f"Preset '{name}' did not return TransformerModelConfig"
 
 
 class TestBuildModel:

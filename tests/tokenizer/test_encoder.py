@@ -28,7 +28,7 @@ def _train_test_tokenizer() -> "tokenizers.Tokenizer":
     )
 
     corpus = [
-        "fn main() { println!(\"Hello, world!\"); }",
+        'fn main() { println!("Hello, world!"); }',
         "pub struct Point { x: f64, y: f64 }",
         "let values: Vec<i32> = vec![1, 2, 3, 4, 5];",
         "fn add(a: i32, b: i32) -> i32 { a + b }",
@@ -50,7 +50,7 @@ def test_encode_produces_ids() -> None:
 def test_roundtrip() -> None:
     """The fundamental property: decode(encode(text)) gets the original back."""
     tokenizer = _train_test_tokenizer()
-    original = "fn main() { println!(\"Hello\"); }"
+    original = 'fn main() { println!("Hello"); }'
     ids = encode(tokenizer, original)
     recovered = decode(tokenizer, ids)
     assert recovered == original

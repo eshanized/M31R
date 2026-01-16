@@ -41,7 +41,7 @@ def _make_task(**kwargs) -> BenchmarkTask:
 class TestSandbox:
     def test_creates_directory_with_source(self, tmp_path: Path) -> None:
         task = _make_task()
-        sandbox = create_sandbox(task, "fn main() { println!(\"hi\"); }", base_dir=tmp_path)
+        sandbox = create_sandbox(task, 'fn main() { println!("hi"); }', base_dir=tmp_path)
 
         try:
             assert sandbox.is_dir()
@@ -52,7 +52,7 @@ class TestSandbox:
             cleanup_sandbox(sandbox)
 
     def test_writes_test_code(self, tmp_path: Path) -> None:
-        task = _make_task(test_code='#[test]\nfn it_works() { assert!(true); }')
+        task = _make_task(test_code="#[test]\nfn it_works() { assert!(true); }")
         sandbox = create_sandbox(task, "fn main() {}", base_dir=tmp_path)
 
         try:

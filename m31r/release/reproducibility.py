@@ -156,8 +156,11 @@ def compare_environments(
 
     # Check scalar fields
     for field_name in [
-        "python_version", "platform_system", "platform_machine",
-        "torch_version", "cuda_version",
+        "python_version",
+        "platform_system",
+        "platform_machine",
+        "torch_version",
+        "cuda_version",
     ]:
         val_a = getattr(snap_a, field_name)
         val_b = getattr(snap_b, field_name)
@@ -170,11 +173,13 @@ def compare_environments(
         ver_a = snap_a.packages.get(pkg, "not_installed")
         ver_b = snap_b.packages.get(pkg, "not_installed")
         if ver_a != ver_b:
-            diffs.append(Difference(
-                field=f"package:{pkg}",
-                value_a=ver_a,
-                value_b=ver_b,
-            ))
+            diffs.append(
+                Difference(
+                    field=f"package:{pkg}",
+                    value_a=ver_a,
+                    value_b=ver_b,
+                )
+            )
 
     if diffs:
         _logger.warning(

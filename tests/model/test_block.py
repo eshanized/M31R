@@ -18,7 +18,11 @@ class TestTransformerBlock:
 
     def _make_block(self) -> TransformerBlock:
         return TransformerBlock(
-            dim=64, n_heads=4, head_dim=16, dropout=0.0, norm_eps=1e-6,
+            dim=64,
+            n_heads=4,
+            head_dim=16,
+            dropout=0.0,
+            norm_eps=1e-6,
         )
 
     def test_output_shape(self) -> None:

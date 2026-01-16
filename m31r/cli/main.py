@@ -209,28 +209,43 @@ def _register_subcommands(
     # Generate command args
     gen_parser = subparsers.choices["generate"]
     gen_parser.add_argument(
-        "--prompt", type=str, default=None,
+        "--prompt",
+        type=str,
+        default=None,
         help="Text prompt to generate from.",
     )
     gen_parser.add_argument(
-        "--max-tokens", type=int, default=None, dest="max_tokens",
+        "--max-tokens",
+        type=int,
+        default=None,
+        dest="max_tokens",
         help="Maximum number of tokens to generate.",
     )
     gen_parser.add_argument(
-        "--temperature", type=float, default=None,
+        "--temperature",
+        type=float,
+        default=None,
         help="Sampling temperature (0.0 = greedy).",
     )
     gen_parser.add_argument(
-        "--top-k", type=int, default=None, dest="top_k",
+        "--top-k",
+        type=int,
+        default=None,
+        dest="top_k",
         help="Top-k sampling parameter (0 = disabled).",
     )
     gen_parser.add_argument(
-        "--quantization", type=str, default=None, dest="quantization_mode",
+        "--quantization",
+        type=str,
+        default=None,
+        dest="quantization_mode",
         choices=["none", "fp16", "int8", "int4"],
         help="Override quantization mode.",
     )
     gen_parser.add_argument(
-        "--device", type=str, default=None,
+        "--device",
+        type=str,
+        default=None,
         choices=["auto", "cpu", "cuda"],
         help="Override device selection.",
     )
@@ -238,20 +253,29 @@ def _register_subcommands(
     # Serve command args
     serve_parser = subparsers.choices["serve"]
     serve_parser.add_argument(
-        "--host", type=str, default=None,
+        "--host",
+        type=str,
+        default=None,
         help="Server bind address (default: 127.0.0.1).",
     )
     serve_parser.add_argument(
-        "--port", type=int, default=None,
+        "--port",
+        type=int,
+        default=None,
         help="Server bind port (default: 8731).",
     )
     serve_parser.add_argument(
-        "--quantization", type=str, default=None, dest="quantization_mode",
+        "--quantization",
+        type=str,
+        default=None,
+        dest="quantization_mode",
         choices=["none", "fp16", "int8", "int4"],
         help="Override quantization mode.",
     )
     serve_parser.add_argument(
-        "--device", type=str, default=None,
+        "--device",
+        type=str,
+        default=None,
         choices=["auto", "cpu", "cuda"],
         help="Override device selection.",
     )
@@ -284,14 +308,20 @@ def _register_tokenizer_subcommands(
     encode_p = tok_subs.add_parser("encode", parents=[parent], help="Encode text into token IDs.")
     encode_p.add_argument("--text", type=str, default=None, help="Text to encode.")
     encode_p.add_argument(
-        "--input-file", type=str, default=None, dest="input_file",
+        "--input-file",
+        type=str,
+        default=None,
+        dest="input_file",
         help="Path to a text file to encode.",
     )
     encode_p.set_defaults(func=handle_tokenizer_encode, dataset_dir=None)
 
     decode_p = tok_subs.add_parser("decode", parents=[parent], help="Decode token IDs into text.")
     decode_p.add_argument(
-        "--ids", type=str, default=None, dest="token_ids",
+        "--ids",
+        type=str,
+        default=None,
+        dest="token_ids",
         help="Comma-separated token IDs to decode.",
     )
     decode_p.set_defaults(func=handle_tokenizer_decode, dataset_dir=None)

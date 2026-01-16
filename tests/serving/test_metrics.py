@@ -26,13 +26,15 @@ class TestServingMetrics:
 
     def test_records_requests(self) -> None:
         metrics = ServingMetrics()
-        metrics.record(RequestMetrics(
-            prompt_tokens=10,
-            generated_tokens=20,
-            total_time_ms=100.0,
-            tokens_per_second=200.0,
-            peak_memory_mb=50.0,
-        ))
+        metrics.record(
+            RequestMetrics(
+                prompt_tokens=10,
+                generated_tokens=20,
+                total_time_ms=100.0,
+                tokens_per_second=200.0,
+                peak_memory_mb=50.0,
+            )
+        )
         assert metrics.total_requests == 1
         assert metrics.average_tokens_per_second() == 200.0
 
@@ -60,7 +62,10 @@ class TestServingMetrics:
         summary = metrics.summary()
 
         expected_keys = {
-            "total_requests", "uptime_seconds",
-            "avg_tokens_per_second", "avg_ms_per_token", "peak_memory_mb",
+            "total_requests",
+            "uptime_seconds",
+            "avg_tokens_per_second",
+            "avg_ms_per_token",
+            "peak_memory_mb",
         }
         assert set(summary.keys()) == expected_keys

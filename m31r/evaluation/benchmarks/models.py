@@ -12,20 +12,21 @@ that's a bug.
 
 from dataclasses import dataclass, field
 
-
 # These are the valid benchmark categories from 16_BENCHMARK_SUITE.md §4.
 # If you add a new category, add it here and create the matching directory
 # under benchmarks/.
-VALID_CATEGORIES: frozenset[str] = frozenset({
-    "completion",
-    "fim",
-    "functions",
-    "bugs",
-    "refactor",
-    "ownership",
-    "projects",
-    "stdlib",
-})
+VALID_CATEGORIES: frozenset[str] = frozenset(
+    {
+        "completion",
+        "fim",
+        "functions",
+        "bugs",
+        "refactor",
+        "ownership",
+        "projects",
+        "stdlib",
+    }
+)
 
 
 @dataclass(frozen=True)

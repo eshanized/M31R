@@ -88,8 +88,7 @@ class TestCheckpointSaveLoad:
         torch.manual_seed(999)
         model2 = _TinyModel()
         assert not all(
-            torch.equal(model2.state_dict()[k], original_weights[k])
-            for k in original_weights
+            torch.equal(model2.state_dict()[k], original_weights[k]) for k in original_weights
         )
 
         # Load checkpoint into new model

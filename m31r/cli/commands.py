@@ -148,7 +148,9 @@ def handle_filter(args: argparse.Namespace) -> int:
             )
             return SUCCESS
 
-        logger.info("Starting filter pipeline", extra={"command": "filter", "dry_run": args.dry_run})
+        logger.info(
+            "Starting filter pipeline", extra={"command": "filter", "dry_run": args.dry_run}
+        )
 
         if args.dry_run:
             logger.info("Dry run — would filter crawled data")
@@ -435,8 +437,7 @@ def _find_latest_dataset(dataset_dir: Path) -> Path | None:
         return None
 
     version_dirs = sorted(
-        d for d in dataset_dir.iterdir()
-        if d.is_dir() and not d.name.startswith("_")
+        d for d in dataset_dir.iterdir() if d.is_dir() and not d.name.startswith("_")
     )
 
     if not version_dirs:
@@ -505,7 +506,9 @@ def handle_train(args: argparse.Namespace) -> int:
         project_root = _resolve_project_root()
         experiments_root = project_root / config.global_config.directories.experiments
         experiment_dir = create_experiment_dir(
-            experiments_root, config, config.global_config.seed,
+            experiments_root,
+            config,
+            config.global_config.seed,
         )
 
         result = run_training(config, experiment_dir)
@@ -681,6 +684,7 @@ def handle_eval(args: argparse.Namespace) -> int:
 
         # Write results to experiments/<run_id>/eval/
         import time
+
         run_id = f"eval_{int(time.time())}"
         output_dir = project_root / eval_config.output_directory / run_id / "eval"
 
@@ -751,6 +755,7 @@ def _load_model_for_eval(
         else:
             experiments_root = project_root / config.global_config.directories.experiments
             from m31r.training.engine.experiment import find_experiment_dir
+
             experiment_dir = find_experiment_dir(experiments_root, None)
             if experiment_dir is None:
                 logger.error("No experiment found — train a model first")
@@ -845,6 +850,7 @@ def handle_benchmark(args: argparse.Namespace) -> int:
 
         # Tally tasks by category for a nice summary
         from collections import Counter
+
         category_counts = Counter(t.category for t in suite.tasks)
 
         logger.info(
@@ -1077,9 +1083,7 @@ def handle_export(args: argparse.Namespace) -> int:
 
         # Find experiment and checkpoint
         experiments_root = project_root / (
-            config.global_config.directories.experiments
-            if config is not None
-            else "experiments"
+            config.global_config.directories.experiments if config is not None else "experiments"
         )
         run_id = getattr(args, "run_id", None)
         experiment_dir = find_experiment_dir(experiments_root, run_id)
@@ -1305,4 +1309,3 @@ def handle_clean(args: argparse.Namespace) -> int:
     except Exception as err:
         logger.error("Cleanup failed", extra={"error": str(err)}, exc_info=True)
         return RUNTIME_ERROR
-

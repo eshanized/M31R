@@ -89,8 +89,9 @@ class TokenDataset:
             data = shard_path.read_bytes()
             # Assume 4-byte little-endian integers
             import struct
+
             count = len(data) // 4
-            return list(struct.unpack(f"<{count}i", data[:count * 4]))
+            return list(struct.unpack(f"<{count}i", data[: count * 4]))
         elif shard_path.suffix == ".json":
             content = json.loads(shard_path.read_text(encoding="utf-8"))
             if isinstance(content, dict) and "tokens" in content:
@@ -147,7 +148,7 @@ class TokenDataset:
             end = start + self.seq_len
 
             input_ids = torch.tensor(tokens[start:end], dtype=torch.long)
-            target_ids = torch.tensor(tokens[start + 1:end + 1], dtype=torch.long)
+            target_ids = torch.tensor(tokens[start + 1 : end + 1], dtype=torch.long)
             yield input_ids, target_ids
 
     def total_windows(self) -> int:

@@ -94,7 +94,7 @@ def _generate_code(
             tokens = torch.cat([tokens, next_token], dim=1)
 
     output_ids = tokens[0].tolist()
-    generated_ids = output_ids[len(input_ids):]
+    generated_ids = output_ids[len(input_ids) :]
 
     return decode_fn(generated_ids)
 
@@ -128,7 +128,10 @@ def execute_task(
         gen_start = time.monotonic()
         try:
             generated_code = _generate_code(
-                model, tokenizer, prompt, seed=attempt_seed,
+                model,
+                tokenizer,
+                prompt,
+                seed=attempt_seed,
             )
         except Exception as exc:
             logger.error(
@@ -139,14 +142,16 @@ def execute_task(
                     "error": str(exc),
                 },
             )
-            results.append(TaskResult(
-                task_id=task.task_id,
-                category=task.category,
-                attempt_index=attempt,
-                compiled=False,
-                tests_passed=False,
-                generation_time_seconds=time.monotonic() - gen_start,
-            ))
+            results.append(
+                TaskResult(
+                    task_id=task.task_id,
+                    category=task.category,
+                    attempt_index=attempt,
+                    compiled=False,
+                    tests_passed=False,
+                    generation_time_seconds=time.monotonic() - gen_start,
+                )
+            )
             continue
         gen_elapsed = time.monotonic() - gen_start
 
@@ -157,17 +162,19 @@ def execute_task(
             if compile_result.success:
                 test_result = test_rust(sandbox_dir, timeout_seconds=test_timeout)
 
-            results.append(TaskResult(
-                task_id=task.task_id,
-                category=task.category,
-                attempt_index=attempt,
-                compiled=compile_result.success,
-                tests_passed=test_result.success if test_result else False,
-                compile_result=compile_result,
-                test_result=test_result,
-                generation_time_seconds=gen_elapsed,
-                generated_code=generated_code,
-            ))
+            results.append(
+                TaskResult(
+                    task_id=task.task_id,
+                    category=task.category,
+                    attempt_index=attempt,
+                    compiled=compile_result.success,
+                    tests_passed=test_result.success if test_result else False,
+                    compile_result=compile_result,
+                    test_result=test_result,
+                    generation_time_seconds=gen_elapsed,
+                    generated_code=generated_code,
+                )
+            )
 
         logger.debug(
             "Attempt complete",

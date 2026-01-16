@@ -123,7 +123,9 @@ class TestTrainingEngine:
         config = load_config(config_path)
 
         experiment_dir = create_experiment_dir(
-            tmp_path / "experiments", config, config.global_config.seed,
+            tmp_path / "experiments",
+            config,
+            config.global_config.seed,
         )
 
         result = run_training(config, experiment_dir)
@@ -150,6 +152,7 @@ class TestTrainingEngine:
         model_config = _build_model_config(config)
 
         from m31r.model.transformer import M31RTransformer
+
         model = M31RTransformer(model_config)
         optimizer = create_optimizer(model, train_cfg)
 
@@ -185,7 +188,9 @@ class TestTrainingEngine:
         config = load_config(config_path)
 
         experiment_dir = create_experiment_dir(
-            tmp_path / "experiments", config, config.global_config.seed,
+            tmp_path / "experiments",
+            config,
+            config.global_config.seed,
         )
 
         result = run_training(config, experiment_dir)
@@ -206,7 +211,9 @@ class TestTrainingEngine:
         # Run 1
         config1 = load_config(config_path)
         exp_dir1 = create_experiment_dir(
-            tmp_path / "experiments", config1, config1.global_config.seed,
+            tmp_path / "experiments",
+            config1,
+            config1.global_config.seed,
         )
         result1 = run_training(config1, exp_dir1)
 
@@ -214,7 +221,9 @@ class TestTrainingEngine:
         config_path2 = _create_tiny_training_setup(tmp_path / "run2")
         config2 = load_config(config_path2)
         exp_dir2 = create_experiment_dir(
-            tmp_path / "run2" / "experiments", config2, config2.global_config.seed,
+            tmp_path / "run2" / "experiments",
+            config2,
+            config2.global_config.seed,
         )
         result2 = run_training(config2, exp_dir2)
 

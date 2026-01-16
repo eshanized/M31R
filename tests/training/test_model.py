@@ -76,12 +76,22 @@ class TestTransformerModel:
     def test_different_seeds_differ(self) -> None:
         """Different seeds must produce different weights."""
         config1 = TransformerModelConfig(
-            vocab_size=256, dim=64, n_layers=2, n_heads=4,
-            head_dim=16, max_seq_len=32, seed=42,
+            vocab_size=256,
+            dim=64,
+            n_layers=2,
+            n_heads=4,
+            head_dim=16,
+            max_seq_len=32,
+            seed=42,
         )
         config2 = TransformerModelConfig(
-            vocab_size=256, dim=64, n_layers=2, n_heads=4,
-            head_dim=16, max_seq_len=32, seed=123,
+            vocab_size=256,
+            dim=64,
+            n_layers=2,
+            n_heads=4,
+            head_dim=16,
+            max_seq_len=32,
+            seed=123,
         )
         model1 = M31RTransformer(config1)
         model2 = M31RTransformer(config2)
@@ -90,8 +100,7 @@ class TestTransformerModel:
         params2 = list(model2.parameters())
         # At least one parameter tensor should differ
         any_different = any(
-            not torch.allclose(p1, p2, atol=1e-6)
-            for p1, p2 in zip(params1, params2)
+            not torch.allclose(p1, p2, atol=1e-6) for p1, p2 in zip(params1, params2)
         )
         assert any_different
 

@@ -190,7 +190,9 @@ def run_training(
     checkpoint_path = ""
 
     dataloader: Iterator[tuple[torch.Tensor, torch.Tensor]] = create_dataloader(
-        dataset, train_cfg.batch_size, seed=config.global_config.seed,
+        dataset,
+        train_cfg.batch_size,
+        seed=config.global_config.seed,
     )
 
     for input_batch, target_batch in dataloader:
@@ -228,7 +230,8 @@ def run_training(
 
             # Step 4: Gradient clipping
             grad_norm = torch.nn.utils.clip_grad_norm_(
-                model.parameters(), train_cfg.grad_clip,
+                model.parameters(),
+                train_cfg.grad_clip,
             ).item()
 
             # Step 5: Optimizer step

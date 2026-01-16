@@ -15,19 +15,20 @@ industry standard way to tag licenses in open source projects.
 
 from pathlib import Path
 
-
-PERMISSIVE_LICENSES: frozenset[str] = frozenset({
-    "MIT",
-    "Apache-2.0",
-    "BSD-2-Clause",
-    "BSD-3-Clause",
-    "ISC",
-    "Unlicense",
-    "CC0-1.0",
-    "0BSD",
-    "BSL-1.0",
-    "Zlib",
-})
+PERMISSIVE_LICENSES: frozenset[str] = frozenset(
+    {
+        "MIT",
+        "Apache-2.0",
+        "BSD-2-Clause",
+        "BSD-3-Clause",
+        "ISC",
+        "Unlicense",
+        "CC0-1.0",
+        "0BSD",
+        "BSL-1.0",
+        "Zlib",
+    }
+)
 
 LICENSE_FILE_NAMES: tuple[str, ...] = (
     "LICENSE",

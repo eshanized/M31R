@@ -46,19 +46,14 @@ def check_python_version() -> EnvironmentCheck:
     """Verify Python >= 3.11."""
     major, minor, micro = sys.version_info[:3]
     version_str = f"{major}.{minor}.{micro}"
-    passed = major > MIN_PYTHON_MAJOR or (
-        major == MIN_PYTHON_MAJOR and minor >= MIN_PYTHON_MINOR
-    )
+    passed = major > MIN_PYTHON_MAJOR or (major == MIN_PYTHON_MAJOR and minor >= MIN_PYTHON_MINOR)
     if passed:
         msg = f"Python {version_str} meets minimum {MIN_PYTHON_MAJOR}.{MIN_PYTHON_MINOR}"
     else:
         msg = (
-            f"Python {version_str} does NOT meet minimum "
-            f"{MIN_PYTHON_MAJOR}.{MIN_PYTHON_MINOR}"
+            f"Python {version_str} does NOT meet minimum " f"{MIN_PYTHON_MAJOR}.{MIN_PYTHON_MINOR}"
         )
-    return EnvironmentCheck(
-        name="python_version", passed=passed, message=msg, value=version_str
-    )
+    return EnvironmentCheck(name="python_version", passed=passed, message=msg, value=version_str)
 
 
 def check_torch_version() -> EnvironmentCheck:
@@ -122,7 +117,7 @@ def check_disk_space(path: Path | None = None) -> EnvironmentCheck:
     check_path = path or Path.cwd()
     try:
         usage = shutil.disk_usage(str(check_path))
-        free_gb = usage.free / (1024 ** 3)
+        free_gb = usage.free / (1024**3)
         passed = usage.free >= MIN_DISK_SPACE_BYTES
         if passed:
             msg = f"{free_gb:.1f} GB free (minimum {MIN_DISK_SPACE_BYTES / (1024**3):.0f} GB)"
@@ -161,7 +156,7 @@ def check_memory() -> EnvironmentCheck:
             total_bytes = 0
 
         if total_bytes > 0:
-            total_gb = total_bytes / (1024 ** 3)
+            total_gb = total_bytes / (1024**3)
             passed = total_bytes >= MIN_MEMORY_BYTES
             if passed:
                 msg = (

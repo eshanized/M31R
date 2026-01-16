@@ -17,9 +17,17 @@ from m31r.serving.quantization.core import (
 @pytest.fixture()
 def small_model() -> M31RTransformer:
     config = TransformerModelConfig(
-        vocab_size=64, dim=16, n_layers=1, n_heads=2,
-        head_dim=8, max_seq_len=32, dropout=0.0,
-        norm_eps=1e-6, rope_theta=10000.0, init_std=0.02, seed=42,
+        vocab_size=64,
+        dim=16,
+        n_layers=1,
+        n_heads=2,
+        head_dim=8,
+        max_seq_len=32,
+        dropout=0.0,
+        norm_eps=1e-6,
+        rope_theta=10000.0,
+        init_std=0.02,
+        seed=42,
     )
     torch.manual_seed(42)
     return M31RTransformer(config)

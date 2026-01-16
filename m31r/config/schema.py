@@ -49,9 +49,7 @@ class GlobalConfig(BaseModel):
     config_version: str = Field(
         description="Schema version for compatibility tracking, e.g. '1.0.0'"
     )
-    project_name: str = Field(
-        default="m31r", description="Human-readable project identifier"
-    )
+    project_name: str = Field(default="m31r", description="Human-readable project identifier")
     seed: int = Field(
         default=42,
         ge=0,
@@ -112,15 +110,25 @@ class FilterConfig(BaseModel):
     )
     excluded_directories: list[str] = Field(
         default_factory=lambda: [
-            "target", "vendor", "node_modules", "build", "dist",
-            "generated", ".git",
+            "target",
+            "vendor",
+            "node_modules",
+            "build",
+            "dist",
+            "generated",
+            ".git",
         ],
         description="Any file inside these directories gets dropped (per spec §9)",
     )
     allowed_licenses: list[str] = Field(
         default_factory=lambda: [
-            "MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause",
-            "ISC", "Unlicense", "CC0-1.0",
+            "MIT",
+            "Apache-2.0",
+            "BSD-2-Clause",
+            "BSD-3-Clause",
+            "ISC",
+            "Unlicense",
+            "CC0-1.0",
         ],
         description="Only repos with these SPDX identifiers are kept (per spec §14)",
     )

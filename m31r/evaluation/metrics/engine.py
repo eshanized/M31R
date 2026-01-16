@@ -78,9 +78,7 @@ def compute_metrics(
             score = compute_pass_at_k(n, c, k)
             task_scores.append(score)
 
-        pass_at_k[k] = (
-            sum(task_scores) / len(task_scores) if task_scores else 0.0
-        )
+        pass_at_k[k] = sum(task_scores) / len(task_scores) if task_scores else 0.0
 
     # Per-category breakdowns let us see which types of tasks the model
     # struggles with. A model might ace function completion but fail
@@ -103,15 +101,9 @@ def compute_metrics(
     # Timing averages for performance tracking
     gen_times = [r.generation_time_seconds for r in results if r.generation_time_seconds > 0]
     compile_times = [
-        r.compile_result.elapsed_seconds
-        for r in results
-        if r.compile_result is not None
+        r.compile_result.elapsed_seconds for r in results if r.compile_result is not None
     ]
-    test_times = [
-        r.test_result.elapsed_seconds
-        for r in results
-        if r.test_result is not None
-    ]
+    test_times = [r.test_result.elapsed_seconds for r in results if r.test_result is not None]
 
     metrics = EvalMetrics(
         compile_success_rate=compile_success_rate,
@@ -122,15 +114,11 @@ def compute_metrics(
         total_attempts=total_attempts,
         total_compiled=total_compiled,
         total_passed=total_passed,
-        avg_generation_time_seconds=(
-            sum(gen_times) / len(gen_times) if gen_times else 0.0
-        ),
+        avg_generation_time_seconds=(sum(gen_times) / len(gen_times) if gen_times else 0.0),
         avg_compile_time_seconds=(
             sum(compile_times) / len(compile_times) if compile_times else 0.0
         ),
-        avg_test_time_seconds=(
-            sum(test_times) / len(test_times) if test_times else 0.0
-        ),
+        avg_test_time_seconds=(sum(test_times) / len(test_times) if test_times else 0.0),
         seed=seed,
     )
 

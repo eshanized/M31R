@@ -54,7 +54,9 @@ class TestTokenDataset:
 
         for input_ids, target_ids in dataset:
             # target[i] should be the token right after input[i]
-            assert target_ids[0].item() == input_ids[0].item() + 1 or True  # order may vary from shuffle
+            assert (
+                target_ids[0].item() == input_ids[0].item() + 1 or True
+            )  # order may vary from shuffle
             break
 
     def test_deterministic_order(self, tmp_path: Path) -> None:
@@ -95,10 +97,7 @@ class TestTokenDataset:
                 break
 
         # At least one batch should differ (different shard ordering)
-        any_different = any(
-            not torch.equal(t1, t2)
-            for t1, t2 in zip(tokens_seed1, tokens_seed2)
-        )
+        any_different = any(not torch.equal(t1, t2) for t1, t2 in zip(tokens_seed1, tokens_seed2))
         assert any_different
 
     def test_resume_skips_windows(self, tmp_path: Path) -> None:
@@ -106,12 +105,14 @@ class TestTokenDataset:
         shard_dir = tmp_path / "shards"
         _create_test_shards(shard_dir, n_shards=1, tokens_per_shard=200)
 
-        all_inputs = list(
-            inp for inp, _ in TokenDataset(shard_dir=shard_dir, seq_len=16, seed=42)
-        )
+        all_inputs = list(inp for inp, _ in TokenDataset(shard_dir=shard_dir, seq_len=16, seed=42))
         resumed_inputs = list(
-            inp for inp, _ in TokenDataset(
-                shard_dir=shard_dir, seq_len=16, seed=42, start_offset=3,
+            inp
+            for inp, _ in TokenDataset(
+                shard_dir=shard_dir,
+                seq_len=16,
+                seed=42,
+                start_offset=3,
             )
         )
 
@@ -133,7 +134,8 @@ class TestTokenDataset:
         shard_dir.mkdir(parents=True)
         tokens = list(range(100))
         (shard_dir / "shard_0000.json").write_text(
-            json.dumps({"tokens": tokens}), encoding="utf-8",
+            json.dumps({"tokens": tokens}),
+            encoding="utf-8",
         )
         dataset = TokenDataset(shard_dir=shard_dir, seq_len=16, seed=42)
         items = list(dataset)

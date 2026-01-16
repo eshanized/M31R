@@ -94,19 +94,21 @@ def format_report_text(metrics: EvalMetrics) -> str:
     for k, score in sorted(metrics.pass_at_k.items()):
         lines.append(f"Pass@{k}: {score:.2%}")
 
-    lines.extend([
-        "",
-        "--- SUMMARY ---",
-        f"Total Tasks: {metrics.total_tasks}",
-        f"Total Attempts: {metrics.total_attempts}",
-        f"Total Compiled: {metrics.total_compiled}",
-        f"Total Passed: {metrics.total_passed}",
-        "",
-        "--- TIMING ---",
-        f"Avg Generation: {metrics.avg_generation_time_seconds:.3f}s",
-        f"Avg Compilation: {metrics.avg_compile_time_seconds:.3f}s",
-        f"Avg Testing: {metrics.avg_test_time_seconds:.3f}s",
-    ])
+    lines.extend(
+        [
+            "",
+            "--- SUMMARY ---",
+            f"Total Tasks: {metrics.total_tasks}",
+            f"Total Attempts: {metrics.total_attempts}",
+            f"Total Compiled: {metrics.total_compiled}",
+            f"Total Passed: {metrics.total_passed}",
+            "",
+            "--- TIMING ---",
+            f"Avg Generation: {metrics.avg_generation_time_seconds:.3f}s",
+            f"Avg Compilation: {metrics.avg_compile_time_seconds:.3f}s",
+            f"Avg Testing: {metrics.avg_test_time_seconds:.3f}s",
+        ]
+    )
 
     if metrics.category_compile_rates:
         lines.extend(["", "--- CATEGORY COMPILE RATES ---"])

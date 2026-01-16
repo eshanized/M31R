@@ -90,8 +90,6 @@ def load_config(config_path: Path) -> M31RConfig:
     try:
         config = M31RConfig.model_validate(raw_data)
     except ValidationError as err:
-        raise ConfigValidationError(
-            f"Config validation failed for {config_path}:\n{err}"
-        ) from err
+        raise ConfigValidationError(f"Config validation failed for {config_path}:\n{err}") from err
 
     return config

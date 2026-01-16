@@ -41,8 +41,10 @@ def compile_rust(source_dir: Path, timeout_seconds: int = 10) -> CompileResult:
     try:
         result = subprocess.run(
             [
-                "cargo", "build",
-                "--manifest-path", str(source_dir / "Cargo.toml"),
+                "cargo",
+                "build",
+                "--manifest-path",
+                str(source_dir / "Cargo.toml"),
             ],
             capture_output=True,
             text=True,
@@ -117,9 +119,12 @@ def test_rust(source_dir: Path, timeout_seconds: int = 10) -> TestResult:
     try:
         result = subprocess.run(
             [
-                "cargo", "test",
-                "--manifest-path", str(source_dir / "Cargo.toml"),
-                "--", "--test-threads=1",
+                "cargo",
+                "test",
+                "--manifest-path",
+                str(source_dir / "Cargo.toml"),
+                "--",
+                "--test-threads=1",
             ],
             capture_output=True,
             text=True,
@@ -187,6 +192,7 @@ def _build_restricted_env() -> dict[str, str]:
     temp directories anyway.
     """
     import os
+
     env = dict(os.environ)
     # Make sure cargo doesn't try to phone home for crate downloads
     env["CARGO_NET_OFFLINE"] = "true"

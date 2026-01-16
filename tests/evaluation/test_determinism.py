@@ -17,15 +17,52 @@ from m31r.evaluation.metrics.passatk import compute_pass_at_k
 def _build_results() -> list[TaskResult]:
     """A fixed set of results we can compute metrics on repeatedly."""
     cr_ok = CompileResult(success=True, exit_code=0, stdout="", stderr="", elapsed_seconds=0.1)
-    cr_fail = CompileResult(success=False, exit_code=1, stdout="", stderr="error", elapsed_seconds=0.1)
+    cr_fail = CompileResult(
+        success=False, exit_code=1, stdout="", stderr="error", elapsed_seconds=0.1
+    )
     tr_ok = TestResult(success=True, exit_code=0, stdout="", stderr="", elapsed_seconds=0.05)
     tr_fail = TestResult(success=False, exit_code=1, stdout="", stderr="fail", elapsed_seconds=0.05)
 
     return [
-        TaskResult(task_id="a/1", category="completion", attempt_index=0, compiled=True, tests_passed=True, compile_result=cr_ok, test_result=tr_ok, generation_time_seconds=0.2),
-        TaskResult(task_id="a/1", category="completion", attempt_index=1, compiled=True, tests_passed=False, compile_result=cr_ok, test_result=tr_fail, generation_time_seconds=0.2),
-        TaskResult(task_id="b/1", category="functions", attempt_index=0, compiled=False, tests_passed=False, compile_result=cr_fail, generation_time_seconds=0.3),
-        TaskResult(task_id="b/1", category="functions", attempt_index=1, compiled=True, tests_passed=True, compile_result=cr_ok, test_result=tr_ok, generation_time_seconds=0.25),
+        TaskResult(
+            task_id="a/1",
+            category="completion",
+            attempt_index=0,
+            compiled=True,
+            tests_passed=True,
+            compile_result=cr_ok,
+            test_result=tr_ok,
+            generation_time_seconds=0.2,
+        ),
+        TaskResult(
+            task_id="a/1",
+            category="completion",
+            attempt_index=1,
+            compiled=True,
+            tests_passed=False,
+            compile_result=cr_ok,
+            test_result=tr_fail,
+            generation_time_seconds=0.2,
+        ),
+        TaskResult(
+            task_id="b/1",
+            category="functions",
+            attempt_index=0,
+            compiled=False,
+            tests_passed=False,
+            compile_result=cr_fail,
+            generation_time_seconds=0.3,
+        ),
+        TaskResult(
+            task_id="b/1",
+            category="functions",
+            attempt_index=1,
+            compiled=True,
+            tests_passed=True,
+            compile_result=cr_ok,
+            test_result=tr_ok,
+            generation_time_seconds=0.25,
+        ),
     ]
 
 

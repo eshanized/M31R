@@ -54,10 +54,28 @@ class JsonFormatter(logging.Formatter):
         # Merge any extra fields the caller passed via the `extra` kwarg.
         # We skip internal LogRecord attributes to avoid dumping noise.
         standard_attrs = {
-            "name", "msg", "args", "created", "relativeCreated", "exc_info",
-            "exc_text", "stack_info", "lineno", "funcName", "pathname",
-            "filename", "module", "levelno", "levelname", "processName",
-            "process", "threadName", "thread", "message", "msecs", "taskName",
+            "name",
+            "msg",
+            "args",
+            "created",
+            "relativeCreated",
+            "exc_info",
+            "exc_text",
+            "stack_info",
+            "lineno",
+            "funcName",
+            "pathname",
+            "filename",
+            "module",
+            "levelno",
+            "levelname",
+            "processName",
+            "process",
+            "threadName",
+            "thread",
+            "message",
+            "msecs",
+            "taskName",
         }
         for key, value in record.__dict__.items():
             if key not in standard_attrs and not key.startswith("_"):

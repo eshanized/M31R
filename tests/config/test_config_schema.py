@@ -66,7 +66,9 @@ class TestM31RConfigSchema:
 
     def test_rejects_top_level_unknown_fields(self) -> None:
         with pytest.raises(ValidationError):
-            M31RConfig.model_validate({
-                "global": {"config_version": "1.0.0"},
-                "unknown_section": {"something": True},
-            })
+            M31RConfig.model_validate(
+                {
+                    "global": {"config_version": "1.0.0"},
+                    "unknown_section": {"something": True},
+                }
+            )
