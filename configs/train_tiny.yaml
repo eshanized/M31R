@@ -1,0 +1,73 @@
+# M31R Tiny Pipeline — Unified Smoke Test Config
+# CPU-only, 100 steps, frequent checkpoints, FP32.
+# All sections inline so the pipeline runs from a single file.
+
+global:
+  config_version: "1.0.0"
+  project_name: "m31r"
+  seed: 42
+  log_level: "INFO"
+  directories:
+    data: "data"
+    checkpoints: "checkpoints"
+    logs: "logs"
+    experiments: "experiments"
+    configs: "configs"
+
+model:
+  config_version: "1.0.0"
+  n_layers: 6
+  hidden_size: 384
+  n_heads: 6
+  head_dim: 64
+  context_length: 1024
+  dropout: 0.0
+  norm_eps: 1e-6
+  rope_theta: 10000.0
+  init_std: 0.02
+  vocab_size: 16384
+
+train:
+  config_version: "1.0.0"
+  batch_size: 4
+  gradient_accumulation_steps: 2
+  max_steps: 100
+  learning_rate: 3e-4
+  min_learning_rate: 1e-5
+  weight_decay: 0.1
+  beta1: 0.9
+  beta2: 0.95
+  grad_clip: 1.0
+  warmup_steps: 10
+  precision: "fp32"
+  checkpoint_interval: 25
+  log_interval: 5
+  dataset_directory: "datasets/dev-small"
+  tokenizer_directory: "data/tokenizer"
+
+eval:
+  config_version: "1.0.0"
+  benchmark_directory: "benchmarks"
+  k_values: [1]
+  compile_timeout_seconds: 10
+  test_timeout_seconds: 10
+  seed: 42
+  max_workers: 1
+  output_directory: "experiments"
+
+runtime:
+  config_version: "1.0.0"
+  device: "cpu"
+  quantization: "none"
+  max_tokens: 64
+  temperature: 0.0
+  top_k: 0
+  max_context_length: 1024
+  stream: false
+  host: "127.0.0.1"
+  port: 8731
+  max_request_size_bytes: 1048576
+  request_timeout_seconds: 30
+  model_path: "exports"
+  tokenizer_path: "data/tokenizer"
+  seed: 42
