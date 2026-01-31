@@ -131,7 +131,7 @@ def _create_test_config(
 def tmp_pipeline_dir(tmp_path: Path):
     """Set up a temporary pipeline directory with shards and experiment space."""
     shard_dir = tmp_path / "shards"
-    _create_shard_dir(shard_dir, num_shards=2, tokens_per_shard=2000, vocab_size=256)
+    _create_shard_dir(shard_dir, num_shards=4, tokens_per_shard=10_000, vocab_size=256)
 
     # Create tokenizer dir (empty is fine for training — only needed for eval/serve)
     (tmp_path / "tokenizer").mkdir(parents=True, exist_ok=True)
