@@ -1245,7 +1245,7 @@ def handle_info(args: argparse.Namespace) -> int:
             extra={
                 "passed": check.passed,
                 "value": check.value,
-                "message": check.message,
+                "check_message": check.message,
             },
         )
 

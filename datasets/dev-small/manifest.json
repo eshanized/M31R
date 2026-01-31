@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "total_tokens": 200000,
+  "num_shards": 4,
+  "vocab_size": 16384,
+  "seed": 42,
+  "shards": [
+    "shard_0000.json",
+    "shard_0001.json",
+    "shard_0002.json",
+    "shard_0003.json"
+  ]
+}

@@ -68,6 +68,6 @@ runtime:
   port: 8731
   max_request_size_bytes: 1048576
   request_timeout_seconds: 30
-  model_path: "exports"
+  model_path: "release"
   tokenizer_path: "data/tokenizer"
   seed: 42
