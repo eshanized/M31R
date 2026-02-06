@@ -64,19 +64,26 @@ def _find_model_weights(model_dir: Path) -> Path:
     """
     Locate the model weights file within the artifact directory.
 
-    We look for model.pt first (the standard export format), falling
-    back to any .pt file if the exact name isn't there. If nothing
-    works, we raise so the user knows what's missing.
+    We look for model.pt first (the standard training export format),
+    then model.safetensors (the release packager format), falling back
+    to any .pt or .safetensors file. If nothing works, we raise so the
+    user knows what's missing.
     """
-    standard = model_dir / "model.pt"
-    if standard.is_file():
-        return standard
+    # Prefer the standard names in order
+    for name in ("model.pt", "model.safetensors"):
+        candidate = model_dir / name
+        if candidate.is_file():
+            return candidate
 
-    pt_files = list(model_dir.glob("*.pt"))
-    if pt_files:
-        return pt_files[0]
+    # Fall back to any weights file
+    for pattern in ("*.pt", "*.safetensors"):
+        files = list(model_dir.glob(pattern))
+        if files:
+            return files[0]
 
-    raise FileNotFoundError(f"No model weights (.pt file) found in {model_dir}")
+    raise FileNotFoundError(
+        f"No model weights (.pt or .safetensors) found in {model_dir}"
+    )
 
 
 def _verify_checksum(weights_path: Path, expected_hash: str | None) -> None:
@@ -186,7 +193,14 @@ def load_artifacts(
 
     # Load weights onto CPU first, then quantize, then move to device.
     # This ordering matters because some quantization modes only work on CPU.
-    state_dict = torch.load(weights_path, map_location="cpu", weights_only=True)
+    if weights_path.suffix == ".safetensors":
+        from safetensors.torch import load_file
+
+        state_dict = load_file(str(weights_path), device="cpu")
+    else:
+        state_dict = torch.load(
+            weights_path, map_location="cpu", weights_only=True
+        )
     model.load_state_dict(state_dict)
     model = quantize_model(model, runtime_cfg.quantization, device)
 

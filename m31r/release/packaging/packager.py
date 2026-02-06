@@ -205,9 +205,31 @@ def create_release(
     release_dir.mkdir(parents=True, exist_ok=False)
 
     try:
-        # Copy model weights
+        # Copy/convert model weights to safetensors format
         dst_model = release_dir / "model.safetensors"
-        shutil.copy2(str(model_path), str(dst_model))
+        if model_path.suffix == ".safetensors":
+            # Already safetensors — just copy
+            shutil.copy2(str(model_path), str(dst_model))
+        else:
+            # Convert from PyTorch format to safetensors
+            import torch
+            from safetensors.torch import save_file
+
+            state_dict = torch.load(
+                str(model_path), map_location="cpu", weights_only=True
+            )
+            # Deduplicate shared tensors (e.g. weight tying) — safetensors
+            # doesn't allow shared memory. Clone so each tensor owns its data.
+            seen_data_ptrs: dict[int, str] = {}
+            clean_dict: dict[str, torch.Tensor] = {}
+            for key, tensor in state_dict.items():
+                ptr = tensor.data_ptr()
+                if ptr in seen_data_ptrs:
+                    clean_dict[key] = tensor.clone()
+                else:
+                    seen_data_ptrs[ptr] = key
+                    clean_dict[key] = tensor
+            save_file(clean_dict, str(dst_model))
         _logger.info("Copied model weights", extra={"source": str(model_path)})
 
         # Copy tokenizer
