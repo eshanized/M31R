@@ -1,0 +1,11 @@
+{
+  "vocab_size": 91,
+  "tokenizer_type": "bpe",
+  "version_hash": "overfit_sanity_test",
+  "special_tokens": [
+    "<pad>",
+    "<unk>",
+    "<bos>",
+    "<eos>"
+  ]
+}
