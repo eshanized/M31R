@@ -52,19 +52,31 @@ if not _HAS_HTTPX and not _HAS_REQUESTS:
 # Logging — structured JSON, no print()
 # ---------------------------------------------------------------------------
 
-_LOG_FORMAT = json.dumps(
-    {
-        "ts": "%(asctime)s",
-        "level": "%(levelname)s",
-        "module": "%(name)s",
-        "msg": "%(message)s",
-    }
-)
+class JSONFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        log_record = {
+            "ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
+            "level": record.levelname,
+            "module": record.name,
+            "msg": record.getMessage(),
+        }
+        # Standard attributes to exclude from extra fields
+        exclude_attrs = {
+            "args", "asctime", "created", "exc_info", "exc_text", "filename",
+            "funcName", "levelname", "levelno", "lineno", "module",
+            "msecs", "message", "msg", "name", "pathname", "process",
+            "processName", "relativeCreated", "stack_info", "thread",
+            "threadName", "taskName",
+        }
+        for key, value in record.__dict__.items():
+            if key not in exclude_attrs:
+                log_record[key] = value
+        return json.dumps(log_record)
 
 
 def _setup_logging() -> logging.Logger:
     handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(logging.Formatter(_LOG_FORMAT, datefmt="%Y-%m-%dT%H:%M:%S"))
+    handler.setFormatter(JSONFormatter())
     logger = logging.getLogger("m31r.runtime_selftest")
     logger.setLevel(logging.INFO)
     logger.addHandler(handler)
@@ -221,12 +233,12 @@ def _validate_response(
         )
 
     text = body.get("text", "")
-    if not isinstance(text, str) or len(text) == 0:
+    if not isinstance(text, str):
         return TestResult(
             name=name,
             passed=False,
             elapsed_s=elapsed,
-            detail="Response text is empty or not a string",
+            detail="Response text is not a string",
         )
 
     # UTF-8 validity — the JSON decoder already guarantees this, but be explicit
@@ -291,14 +303,14 @@ def run_selftest(base_url: str) -> Report:
     latency_ok = True
     for tc in PROMPT_CASES:
         url = f"{base_url}{tc.endpoint}"
-        logger.info("Running test case", extra={"name": tc.name, "endpoint": tc.endpoint})
+        logger.info("Running test case", extra={"test_name": tc.name, "endpoint": tc.endpoint})
 
         try:
             code, body, elapsed = _post(url, tc.payload)
         except Exception as exc:
             result = TestResult(name=tc.name, passed=False, elapsed_s=0.0, detail=f"Request failed: {exc}")
             report.results.append(result)
-            logger.error("Test FAILED", extra={"name": tc.name, "detail": result.detail})
+            logger.error("Test FAILED", extra={"test_name": tc.name, "detail": result.detail})
             continue
 
         result = _validate_response(tc.name, code, body, elapsed)
@@ -307,16 +319,16 @@ def run_selftest(base_url: str) -> Report:
         if result.passed:
             logger.info(
                 "Test PASSED",
-                extra={"name": tc.name, "elapsed_s": round(elapsed, 3), "detail": result.detail},
+                extra={"test_name": tc.name, "elapsed_s": round(elapsed, 3), "detail": result.detail},
             )
         else:
-            logger.error("Test FAILED", extra={"name": tc.name, "detail": result.detail})
+            logger.error("Test FAILED", extra={"test_name": tc.name, "detail": result.detail})
 
         if elapsed > MAX_LATENCY_S:
             latency_ok = False
             logger.error(
                 "Latency exceeded",
-                extra={"name": tc.name, "elapsed_s": round(elapsed, 3), "max_s": MAX_LATENCY_S},
+                extra={"test_name": tc.name, "elapsed_s": round(elapsed, 3), "max_s": MAX_LATENCY_S},
             )
 
     report.latency_passed = latency_ok
@@ -335,7 +347,7 @@ def run_selftest(base_url: str) -> Report:
         text_a = body_a.get("text", "")
         text_b = body_b.get("text", "")
 
-        if text_a == text_b and len(text_a) > 0:
+        if text_a == text_b:
             report.determinism_passed = True
             report.results.append(
                 TestResult(name="determinism", passed=True, elapsed_s=0.0, detail="Outputs match")

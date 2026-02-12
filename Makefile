@@ -79,7 +79,14 @@ eval:
 
 export:
 	@echo "=== [CI] Step 5: Export release bundle ==="
-	m31r export --config $(CONFIG)
+	@rm -rf release/
+	@RUN_ID=$$(ls -1 experiments | grep -v "^eval_" | sort -r | head -n 1); \
+	if [ -n "$$RUN_ID" ]; then \
+		echo "Exporting run: $$RUN_ID"; \
+		m31r export --config $(CONFIG) --run-id "$$RUN_ID"; \
+	else \
+		echo "ERROR: No training run found"; exit 1; \
+	fi
 
 verify:
 	@echo "=== [CI] Step 6: Verify release integrity ==="

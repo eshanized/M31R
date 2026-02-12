@@ -36,3 +36,4 @@ configs/.train_tiny_resume.yaml
 .DS_Store
 Thumbs.db
 *.pt
+*.safetensors
