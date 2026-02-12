@@ -19,7 +19,7 @@
 #   serve     — start server, smoke-test, shutdown
 #   ci        — full pipeline: data → train → resume → eval → export → verify → serve
 
-.PHONY: install test lint format check clean data train resume eval export verify serve ci
+.PHONY: install test lint format check clean data train resume eval export verify serve runtime-test ci
 
 SHELL := /bin/bash
 .SHELLFLAGS := -euo pipefail -c
@@ -93,6 +93,10 @@ verify:
 serve:
 	@echo "=== [CI] Step 7: Serve smoke test ==="
 	@bash scripts/ci/serve_smoke_test.sh $(CONFIG)
+
+runtime-test:
+	@echo "=== [CI] Runtime self-test ==="
+	@bash scripts/ci/snigdhaos-runtime-selftest.sh
 
 ci: data train resume eval export verify serve
 	@echo ""
