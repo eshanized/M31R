@@ -16,10 +16,10 @@
 set -euo pipefail
 
 # ─── Defaults ────────────────────────────────────────────────────────
-MODEL_DIR="release/m31r-tiny"
+MODEL_DIR="release/0.1.0"
 PORT=18731
 HOST="127.0.0.1"
-CONFIG="configs/runtime.yaml"
+CONFIG="configs/train_tiny.yaml"
 MAX_STARTUP_WAIT=60
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"

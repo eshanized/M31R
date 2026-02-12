@@ -9,9 +9,10 @@ Per 15_TESTING_STRATEGY.md — unit tests for every component.
 
 import torch
 
-from m31r.model.blocks.feedforward import SwiGLUFeedForward, _compute_intermediate_size
-from m31r.model.layers.rmsnorm import RMSNorm
-from m31r.model.layers.rotary import apply_rotary_emb, precompute_freqs_cis
+from m31r.model.config import compute_intermediate_size
+from m31r.model.mlp import SwiGLUFeedForward
+from m31r.model.norm import RMSNorm
+from m31r.model.rope import apply_rotary_emb, precompute_freqs_cis
 
 
 class TestRMSNorm:
@@ -83,7 +84,7 @@ class TestSwiGLU:
 
     def test_intermediate_size_alignment(self) -> None:
         """Intermediate size must be aligned to 256."""
-        size = _compute_intermediate_size(512)
+        size = compute_intermediate_size(512)
         assert size % 256 == 0
         assert size > 512  # must be larger than dim
 

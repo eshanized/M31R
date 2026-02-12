@@ -43,6 +43,18 @@ except ImportError:
 
 logger: logging.Logger = logging.getLogger("m31r.test_runtime_smoke")
 
+# ---------------------------------------------------------------------------
+# Auto-skip when no server is running — prevents breakage during `make test`
+# ---------------------------------------------------------------------------
+
+_SERVER_PORT_ENV = "M31R_TEST_PORT"
+
+if _SERVER_PORT_ENV not in os.environ:
+    pytest.skip(
+        f"Skipping runtime smoke tests — set {_SERVER_PORT_ENV} to enable",
+        allow_module_level=True,
+    )
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
