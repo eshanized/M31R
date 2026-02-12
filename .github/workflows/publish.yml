@@ -1,0 +1,57 @@
+name: Publish Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev]"
+          pip install huggingface_hub
+
+      - name: Extract absolute version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Generate Model Card
+        run: |
+          # Assuming the release artifact is present or built here.
+          # For a real pipeline, we might download artifacts from a previous build job.
+          # Here we assume the tag matches a directory in release/
+          
+          RELEASE_PATH="release/${{ steps.version.outputs.VERSION }}"
+          
+          if [ ! -d "$RELEASE_PATH" ]; then
+            echo "Error: Release directory $RELEASE_PATH not found in repo."
+            echo "Keep in mind: In a real CI, artifacts should be downloaded from a build job."
+            exit 1
+          fi
+          
+          make modelcard RELEASE_DIR="$RELEASE_PATH"
+
+      - name: Publish to HuggingFace
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_REPO_ID: ${{ vars.HF_REPO_ID }}
+        run: |
+          RELEASE_PATH="release/${{ steps.version.outputs.VERSION }}"
+          make publish RELEASE_DIR="$RELEASE_PATH"

@@ -19,7 +19,8 @@
 #   serve     — start server, smoke-test, shutdown
 #   ci        — full pipeline: data → train → resume → eval → export → verify → serve
 
-.PHONY: install test lint format check clean data train resume eval export verify serve runtime-test ci
+.PHONY: install test lint format check clean data train resume eval export verify serve runtime-test ci modelcard publish
+
 
 SHELL := /bin/bash
 .SHELLFLAGS := -euo pipefail -c
@@ -110,3 +111,34 @@ ci: data train resume eval export verify serve
 	@echo "══════════════════════════════════════════════════════════"
 	@echo "  M31R CI Pipeline — ALL STEPS PASSED"
 	@echo "══════════════════════════════════════════════════════════"
+
+# ── Release Automation ───────────────────────────────────────────
+
+modelcard:
+	@echo "=== Generating model card ==="
+	@if [ -z "$(RELEASE_DIR)" ]; then \
+		RELEASE_DIR=$$(find release/ -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort | tail -1); \
+		if [ -z "$$RELEASE_DIR" ]; then \
+			echo "ERROR: No release directory found. Provide one with RELEASE_DIR=..."; \
+			exit 1; \
+		fi; \
+		echo "Auto-detected release: $$RELEASE_DIR"; \
+		python scripts/release/snigdhaos-generate-modelcard.py $$RELEASE_DIR; \
+	else \
+		python scripts/release/snigdhaos-generate-modelcard.py $(RELEASE_DIR); \
+	fi
+
+publish:
+	@echo "=== Publishing to HuggingFace ==="
+	@if [ -z "$(RELEASE_DIR)" ]; then \
+		RELEASE_DIR=$$(find release/ -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort | tail -1); \
+		if [ -z "$$RELEASE_DIR" ]; then \
+			echo "ERROR: No release directory found. Provide one with RELEASE_DIR=..."; \
+			exit 1; \
+		fi; \
+		echo "Auto-detected release: $$RELEASE_DIR"; \
+		scripts/release/snigdhaos-upload-hf.sh $$RELEASE_DIR; \
+	else \
+		scripts/release/snigdhaos-upload-hf.sh $(RELEASE_DIR); \
+	fi
+
