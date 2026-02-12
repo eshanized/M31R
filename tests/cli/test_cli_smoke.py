@@ -90,7 +90,7 @@ class TestSubcommandExecution:
 
     def test_verify_runs_without_config(self) -> None:
         exit_code = _run_main("verify")
-        assert exit_code == SUCCESS
+        assert exit_code == USER_ERROR
 
 
 class TestConfigLoading:

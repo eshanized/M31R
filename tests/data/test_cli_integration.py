@@ -15,7 +15,7 @@ from unittest import mock
 
 import pytest
 
-from m31r.cli.exit_codes import CONFIG_ERROR, SUCCESS
+from m31r.cli.exit_codes import CONFIG_ERROR, SUCCESS, USER_ERROR
 from m31r.cli.main import main
 
 
@@ -81,9 +81,9 @@ class TestDatasetCLI:
 
 
 class TestVerifyCLI:
-    def test_verify_without_args_succeeds(self) -> None:
+    def test_verify_without_args_fails(self) -> None:
         exit_code = _run_main("verify")
-        assert exit_code == SUCCESS
+        assert exit_code == USER_ERROR
 
     def test_verify_help_shows_dataset_dir(self) -> None:
         exit_code = _run_main("verify", "--help")
