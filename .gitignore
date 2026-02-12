@@ -29,6 +29,9 @@ htmlcov/
 *.swo
 *~
 
+# CI temporaries
+configs/.train_tiny_resume.yaml
+
 # OS
 .DS_Store
 Thumbs.db
