@@ -10,6 +10,7 @@ Validates forward pass shape, residual connections, and gradient flow.
 import torch
 
 from m31r.model.block import TransformerBlock
+from m31r.model.config import TransformerModelConfig
 from m31r.model.rope import precompute_freqs_cis
 
 
@@ -17,13 +18,16 @@ class TestTransformerBlock:
     """Tests for the TransformerBlock module."""
 
     def _make_block(self) -> TransformerBlock:
-        return TransformerBlock(
+        config = TransformerModelConfig(
+            vocab_size=256,
             dim=64,
+            n_layers=1,
             n_heads=4,
             head_dim=16,
             dropout=0.0,
             norm_eps=1e-6,
         )
+        return TransformerBlock(config)
 
     def test_output_shape(self) -> None:
         """Output shape must match input shape."""

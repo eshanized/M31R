@@ -9,6 +9,10 @@ Per 06_MODEL_ARCHITECTURE.md §4, the topology is:
 
 Weight tying (§5): shared embedding and LM head weights.
 All initialization is deterministic (§21).
+
+Layer implementations within each block are selected via config-driven
+factory system. The transformer itself uses build_norm for the final
+normalization layer.
 """
 
 import torch
@@ -17,7 +21,7 @@ import torch.nn as nn
 from m31r.model.block import TransformerBlock
 from m31r.model.config import TransformerModelConfig
 from m31r.model.embedding import TokenEmbedding
-from m31r.model.norm import RMSNorm
+from m31r.model.factory import build_norm
 from m31r.model.rope import precompute_freqs_cis
 from m31r.model.utils import count_parameters, init_weights
 
@@ -28,8 +32,8 @@ class M31RTransformer(nn.Module):
 
     Implements the full model topology specified in 06_MODEL_ARCHITECTURE.md:
       - Token embedding (weight-tied with output head)
-      - N transformer blocks (pre-norm with RMSNorm, SwiGLU, causal attention)
-      - Final RMSNorm
+      - N transformer blocks (pre-norm, pluggable layers via config)
+      - Final normalization (pluggable via config)
       - Linear LM head (shared weights with embedding)
 
     The model precomputes RoPE frequencies once and passes them to each block.
@@ -46,23 +50,13 @@ class M31RTransformer(nn.Module):
         # Token embedding
         self.tok_embeddings = TokenEmbedding(config.vocab_size, config.dim)
 
-        # Transformer blocks
+        # Transformer blocks — each block uses factory to build its layers
         self.layers = nn.ModuleList(
-            [
-                TransformerBlock(
-                    dim=config.dim,
-                    n_heads=config.n_heads,
-                    head_dim=config.head_dim,
-                    intermediate_dim=config.intermediate_dim,
-                    dropout=config.dropout,
-                    norm_eps=config.norm_eps,
-                )
-                for _ in range(config.n_layers)
-            ]
+            [TransformerBlock(config) for _ in range(config.n_layers)]
         )
 
-        # Final normalization
-        self.norm = RMSNorm(config.dim, eps=config.norm_eps)
+        # Final normalization — uses the same pluggable norm type
+        self.norm = build_norm(config, config.dim)
 
         # Output projection (weight-tied with embedding)
         self.output = nn.Linear(config.dim, config.vocab_size, bias=False)

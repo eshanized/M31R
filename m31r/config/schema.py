@@ -312,6 +312,18 @@ class ModelConfig(BaseModel):
         le=65536,
         description="Vocabulary size (must match tokenizer, default 16k per spec §15)",
     )
+    mlp_type: str = Field(
+        default="swiglu",
+        description="MLP layer implementation type (e.g. 'swiglu', 'innovative_grpu')",
+    )
+    attention_type: str = Field(
+        default="causal",
+        description="Attention layer implementation type (e.g. 'causal')",
+    )
+    norm_type: str = Field(
+        default="rmsnorm",
+        description="Normalization layer implementation type (e.g. 'rmsnorm')",
+    )
 
 
 class TrainConfig(BaseModel):

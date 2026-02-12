@@ -144,6 +144,9 @@ def _build_model_config(
         rope_theta=model_cfg.rope_theta,
         init_std=model_cfg.init_std,
         seed=seed,
+        mlp_type=getattr(model_cfg, "mlp_type", "swiglu"),
+        attention_type=getattr(model_cfg, "attention_type", "causal"),
+        norm_type=getattr(model_cfg, "norm_type", "rmsnorm"),
     )
 
 

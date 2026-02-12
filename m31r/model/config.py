@@ -72,6 +72,9 @@ class TransformerModelConfig:
         "init_std",
         "seed",
         "multiple_of",
+        "mlp_type",
+        "attention_type",
+        "norm_type",
     )
 
     def __init__(
@@ -89,6 +92,9 @@ class TransformerModelConfig:
         init_std: float = 0.02,
         seed: int = 42,
         multiple_of: int = 256,
+        mlp_type: str = "swiglu",
+        attention_type: str = "causal",
+        norm_type: str = "rmsnorm",
     ) -> None:
         self.vocab_size = vocab_size
         self.dim = dim
@@ -103,6 +109,9 @@ class TransformerModelConfig:
         self.init_std = init_std
         self.seed = seed
         self.multiple_of = multiple_of
+        self.mlp_type = mlp_type
+        self.attention_type = attention_type
+        self.norm_type = norm_type
 
     @property
     def intermediate_dim(self) -> int:

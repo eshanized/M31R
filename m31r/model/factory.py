@@ -4,19 +4,92 @@
 """
 Model factory for M31R.
 
-Provides preset configurations and a build function for standard model sizes.
-All sizes share the same code — only config values change.
+Provides preset configurations, layer builder functions, and a build function
+for standard model sizes. All sizes share the same code — only config values
+change.
 
 Per 06_MODEL_ARCHITECTURE.md — the architecture must scale from Tiny → Large
 by configuration only, with no code modifications.
+
+Layer builder functions use the registry to resolve layer types from config
+strings. No if/else chains — the registry handles dispatch.
 """
 
 import logging
 
+import torch.nn as nn
+
 from m31r.model.config import TransformerModelConfig
-from m31r.model.transformer import M31RTransformer
+from m31r.model.registry import get_attention, get_mlp, get_norm
 
 logger = logging.getLogger(__name__)
+
+
+# ── Layer Builder Functions ─────────────────────────────────────────────────
+
+
+def build_mlp(config: TransformerModelConfig) -> nn.Module:
+    """
+    Build an MLP layer from config.
+
+    Looks up config.mlp_type in the registry and constructs the layer
+    with the config's dimension, intermediate dimension, and dropout.
+
+    Args:
+        config: Model config with mlp_type, dim, intermediate_dim, dropout.
+
+    Returns:
+        An initialized nn.Module implementing the MLP contract.
+    """
+    mlp_cls = get_mlp(config.mlp_type)
+    return mlp_cls(
+        dim=config.dim,
+        intermediate_dim=config.intermediate_dim,
+        dropout=config.dropout,
+    )
+
+
+def build_attention(config: TransformerModelConfig) -> nn.Module:
+    """
+    Build an Attention layer from config.
+
+    Looks up config.attention_type in the registry and constructs the layer
+    with the config's dimension, head count, head dim, and dropout.
+
+    Args:
+        config: Model config with attention_type, dim, n_heads, head_dim, dropout.
+
+    Returns:
+        An initialized nn.Module implementing the Attention contract.
+    """
+    attn_cls = get_attention(config.attention_type)
+    return attn_cls(
+        dim=config.dim,
+        n_heads=config.n_heads,
+        head_dim=config.head_dim,
+        dropout=config.dropout,
+    )
+
+
+def build_norm(config: TransformerModelConfig, dim: int) -> nn.Module:
+    """
+    Build a Normalization layer from config.
+
+    Looks up config.norm_type in the registry and constructs the layer
+    with the specified dimension and config's epsilon.
+
+    Args:
+        config: Model config with norm_type and norm_eps.
+        dim: Feature dimension to normalize over.
+
+    Returns:
+        An initialized nn.Module implementing the Norm contract.
+    """
+    norm_cls = get_norm(config.norm_type)
+    return norm_cls(dim=dim, eps=config.norm_eps)
+
+
+# ── Preset Configurations ──────────────────────────────────────────────────
 
 
 def tiny_config(
@@ -156,7 +229,7 @@ PRESETS: dict[str, type] = {
 }
 
 
-def build_model(config: TransformerModelConfig) -> M31RTransformer:
+def build_model(config: TransformerModelConfig) -> "M31RTransformer":
     """
     Build an M31RTransformer from a config object.
 
@@ -168,6 +241,9 @@ def build_model(config: TransformerModelConfig) -> M31RTransformer:
     Returns:
         Initialized M31RTransformer ready for training or inference.
     """
+    # Deferred import to avoid circular dependency (transformer → block → factory)
+    from m31r.model.transformer import M31RTransformer
+
     logger.info(
         "building_model",
         extra={
@@ -179,6 +255,9 @@ def build_model(config: TransformerModelConfig) -> M31RTransformer:
             "intermediate_dim": config.intermediate_dim,
             "vocab_size": config.vocab_size,
             "max_seq_len": config.max_seq_len,
+            "mlp_type": config.mlp_type,
+            "attention_type": config.attention_type,
+            "norm_type": config.norm_type,
         },
     )
     model = M31RTransformer(config)
@@ -194,7 +273,7 @@ def build_model_from_preset(
     preset: str,
     vocab_size: int = 16384,
     seed: int = 42,
-) -> M31RTransformer:
+) -> "M31RTransformer":
     """
     Build an M31RTransformer from a named preset.
 

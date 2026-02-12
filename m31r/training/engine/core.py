@@ -90,6 +90,9 @@ def _build_model_config(config: M31RConfig) -> TransformerModelConfig:
         rope_theta=model_cfg.rope_theta,
         init_std=model_cfg.init_std,
         seed=config.global_config.seed,
+        mlp_type=getattr(model_cfg, "mlp_type", "swiglu"),
+        attention_type=getattr(model_cfg, "attention_type", "causal"),
+        norm_type=getattr(model_cfg, "norm_type", "rmsnorm"),
     )
 
 

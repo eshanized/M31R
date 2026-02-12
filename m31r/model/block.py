@@ -9,18 +9,21 @@ Per 06_MODEL_ARCHITECTURE.md §7, each block contains:
   2. Self-Attention
   3. Residual
   4. RMSNorm
-  5. FeedForward (SwiGLU)
+  5. FeedForward (pluggable)
   6. Residual
 
 This order is fixed. Pre-norm configuration is required.
+
+Layer implementations are selected via the config-driven factory system.
+No layer types are hardcoded here — the block receives built layers
+through constructor injection from the factory functions.
 """
 
 import torch
 import torch.nn as nn
 
-from m31r.model.attention import CausalSelfAttention
-from m31r.model.mlp import SwiGLUFeedForward
-from m31r.model.norm import RMSNorm
+from m31r.model.config import TransformerModelConfig
+from m31r.model.factory import build_attention, build_mlp, build_norm
 
 
 class TransformerBlock(nn.Module):
@@ -31,38 +34,20 @@ class TransformerBlock(nn.Module):
       x = x + attention(norm(x))
       x = x + feedforward(norm(x))
 
+    Layer implementations are determined by the config's mlp_type,
+    attention_type, and norm_type fields, resolved through the registry.
+
     Args:
-        dim: Model hidden dimension.
-        n_heads: Number of attention heads.
-        head_dim: Dimension per attention head.
-        intermediate_dim: FFN intermediate dimension. None for automatic.
-        dropout: Dropout probability for attention and FFN.
-        norm_eps: Epsilon for RMSNorm.
+        config: TransformerModelConfig with all architecture parameters
+                including layer type selectors.
     """
 
-    def __init__(
-        self,
-        dim: int,
-        n_heads: int,
-        head_dim: int,
-        intermediate_dim: int | None = None,
-        dropout: float = 0.0,
-        norm_eps: float = 1e-6,
-    ) -> None:
+    def __init__(self, config: TransformerModelConfig) -> None:
         super().__init__()
-        self.attention_norm = RMSNorm(dim, eps=norm_eps)
-        self.attention = CausalSelfAttention(
-            dim=dim,
-            n_heads=n_heads,
-            head_dim=head_dim,
-            dropout=dropout,
-        )
-        self.ffn_norm = RMSNorm(dim, eps=norm_eps)
-        self.feed_forward = SwiGLUFeedForward(
-            dim=dim,
-            intermediate_dim=intermediate_dim,
-            dropout=dropout,
-        )
+        self.attention_norm = build_norm(config, config.dim)
+        self.attention = build_attention(config)
+        self.ffn_norm = build_norm(config, config.dim)
+        self.feed_forward = build_mlp(config)
 
     def forward(
         self,
