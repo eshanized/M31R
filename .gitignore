@@ -37,3 +37,4 @@ configs/.train_tiny_resume.yaml
 Thumbs.db
 *.pt
 *.safetensors
+release/
