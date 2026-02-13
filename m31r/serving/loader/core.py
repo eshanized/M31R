@@ -81,9 +81,7 @@ def _find_model_weights(model_dir: Path) -> Path:
         if files:
             return files[0]
 
-    raise FileNotFoundError(
-        f"No model weights (.pt or .safetensors) found in {model_dir}"
-    )
+    raise FileNotFoundError(f"No model weights (.pt or .safetensors) found in {model_dir}")
 
 
 def _verify_checksum(weights_path: Path, expected_hash: str | None) -> None:
@@ -201,9 +199,7 @@ def load_artifacts(
 
         state_dict = load_file(str(weights_path), device="cpu")
     else:
-        state_dict = torch.load(
-            weights_path, map_location="cpu", weights_only=True
-        )
+        state_dict = torch.load(weights_path, map_location="cpu", weights_only=True)
     model.load_state_dict(state_dict)
     model = quantize_model(model, runtime_cfg.quantization, device)
 

@@ -230,9 +230,9 @@ class TestLatency:
         elapsed = time.monotonic() - t0
 
         assert code == 200, f"HTTP {code}"
-        assert elapsed < _MAX_LATENCY_S, (
-            f"Latency {elapsed:.2f}s exceeds threshold {_MAX_LATENCY_S}s"
-        )
+        assert (
+            elapsed < _MAX_LATENCY_S
+        ), f"Latency {elapsed:.2f}s exceeds threshold {_MAX_LATENCY_S}s"
 
 
 class TestUTF8Validity:

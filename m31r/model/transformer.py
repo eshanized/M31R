@@ -51,9 +51,7 @@ class M31RTransformer(nn.Module):
         self.tok_embeddings = TokenEmbedding(config.vocab_size, config.dim)
 
         # Transformer blocks — each block uses factory to build its layers
-        self.layers = nn.ModuleList(
-            [TransformerBlock(config) for _ in range(config.n_layers)]
-        )
+        self.layers = nn.ModuleList([TransformerBlock(config) for _ in range(config.n_layers)])
 
         # Final normalization — uses the same pluggable norm type
         self.norm = build_norm(config, config.dim)

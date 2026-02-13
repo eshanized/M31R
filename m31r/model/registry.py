@@ -61,9 +61,7 @@ def get_mlp(name: str) -> type[nn.Module]:
     """
     if name not in _MLP_REGISTRY:
         available = sorted(_MLP_REGISTRY.keys())
-        raise KeyError(
-            f"Unknown MLP type '{name}'. Available: {available}"
-        )
+        raise KeyError(f"Unknown MLP type '{name}'. Available: {available}")
     return _MLP_REGISTRY[name]
 
 
@@ -112,9 +110,7 @@ def get_attention(name: str) -> type[nn.Module]:
     """
     if name not in _ATTENTION_REGISTRY:
         available = sorted(_ATTENTION_REGISTRY.keys())
-        raise KeyError(
-            f"Unknown Attention type '{name}'. Available: {available}"
-        )
+        raise KeyError(f"Unknown Attention type '{name}'. Available: {available}")
     return _ATTENTION_REGISTRY[name]
 
 
@@ -141,8 +137,7 @@ def register_norm(name: str, cls: type[nn.Module]) -> None:
     """
     if name in _NORM_REGISTRY:
         raise ValueError(
-            f"Norm type '{name}' is already registered to "
-            f"{_NORM_REGISTRY[name].__name__}"
+            f"Norm type '{name}' is already registered to " f"{_NORM_REGISTRY[name].__name__}"
         )
     _NORM_REGISTRY[name] = cls
     logger.debug("registered_norm", extra={"name": name, "cls": cls.__name__})
@@ -163,9 +158,7 @@ def get_norm(name: str) -> type[nn.Module]:
     """
     if name not in _NORM_REGISTRY:
         available = sorted(_NORM_REGISTRY.keys())
-        raise KeyError(
-            f"Unknown Norm type '{name}'. Available: {available}"
-        )
+        raise KeyError(f"Unknown Norm type '{name}'. Available: {available}")
     return _NORM_REGISTRY[name]
 
 

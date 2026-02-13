@@ -32,7 +32,6 @@ import torch
 from m31r.config.schema import M31RConfig
 from m31r.model.transformer import M31RTransformer, TransformerModelConfig
 
-
 # ── Constants ─────────────────────────────────────────────────────────
 
 VOCAB_SIZE: int = 256
@@ -107,9 +106,7 @@ def _create_repeated_shards(
             tokens.append(all_token_ids[(start + j) % len(all_token_ids)])
 
         shard_name = f"shard_{i:04d}.json"
-        (shard_dir / shard_name).write_text(
-            json.dumps({"tokens": tokens}), encoding="utf-8"
-        )
+        (shard_dir / shard_name).write_text(json.dumps({"tokens": tokens}), encoding="utf-8")
         shard_files.append(shard_name)
 
     manifest: dict[str, Any] = {
@@ -118,9 +115,7 @@ def _create_repeated_shards(
         "num_shards": num_shards,
         "shards": shard_files,
     }
-    (shard_dir / "manifest.json").write_text(
-        json.dumps(manifest, indent=2), encoding="utf-8"
-    )
+    (shard_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
 
 def _create_overfit_config(
@@ -203,15 +198,13 @@ class TestOverfitLoss:
         from m31r.training.engine.experiment import create_experiment_dir
 
         config = _create_overfit_config(overfit_dir, max_steps=OVERFIT_STEPS)
-        experiment_dir = create_experiment_dir(
-            overfit_dir / "experiments", config, seed=SEED
-        )
+        experiment_dir = create_experiment_dir(overfit_dir / "experiments", config, seed=SEED)
 
         result = run_training(config, experiment_dir)
 
-        assert result.final_step == OVERFIT_STEPS, (
-            f"Expected {OVERFIT_STEPS} steps, got {result.final_step}"
-        )
+        assert (
+            result.final_step == OVERFIT_STEPS
+        ), f"Expected {OVERFIT_STEPS} steps, got {result.final_step}"
         assert result.final_loss < LOSS_THRESHOLD, (
             f"SYSTEM BROKEN: Loss {result.final_loss:.4f} >= {LOSS_THRESHOLD} "
             f"after {OVERFIT_STEPS} steps — model did NOT learn"
@@ -228,9 +221,7 @@ class TestOverfitLoss:
         from m31r.training.engine.experiment import create_experiment_dir
 
         config = _create_overfit_config(overfit_dir, max_steps=OVERFIT_STEPS)
-        experiment_dir = create_experiment_dir(
-            overfit_dir / "experiments", config, seed=SEED
-        )
+        experiment_dir = create_experiment_dir(overfit_dir / "experiments", config, seed=SEED)
 
         result = run_training(config, experiment_dir)
 
@@ -256,9 +247,7 @@ class TestOverfitCheckpoint:
         from m31r.training.engine.experiment import create_experiment_dir
 
         config = _create_overfit_config(overfit_dir, max_steps=OVERFIT_STEPS)
-        experiment_dir = create_experiment_dir(
-            overfit_dir / "experiments", config, seed=SEED
-        )
+        experiment_dir = create_experiment_dir(overfit_dir / "experiments", config, seed=SEED)
 
         result = run_training(config, experiment_dir)
 
@@ -274,9 +263,9 @@ class TestOverfitCheckpoint:
         assert "loss" in meta, "Missing loss in metadata"
         assert "seed" in meta, "Missing seed in metadata"
         assert meta["seed"] == SEED, f"Seed mismatch: {meta['seed']} != {SEED}"
-        assert meta["loss"] < LOSS_THRESHOLD, (
-            f"Checkpoint loss {meta['loss']:.4f} >= {LOSS_THRESHOLD}"
-        )
+        assert (
+            meta["loss"] < LOSS_THRESHOLD
+        ), f"Checkpoint loss {meta['loss']:.4f} >= {LOSS_THRESHOLD}"
 
 
 # ── Test: Generation Quality ─────────────────────────────────────────
@@ -294,9 +283,7 @@ class TestOverfitGeneration:
         from m31r.training.engine.experiment import create_experiment_dir
 
         config = _create_overfit_config(overfit_dir, max_steps=OVERFIT_STEPS)
-        experiment_dir = create_experiment_dir(
-            overfit_dir / "experiments", config, seed=SEED
-        )
+        experiment_dir = create_experiment_dir(overfit_dir / "experiments", config, seed=SEED)
 
         result = run_training(config, experiment_dir)
         assert result.final_loss < LOSS_THRESHOLD
@@ -325,7 +312,7 @@ class TestOverfitGeneration:
                 next_token = logits[:, -1, :].argmax(dim=-1, keepdim=True)
                 input_ids = torch.cat([input_ids, next_token], dim=1)
 
-        generated_ids = input_ids[0].tolist()[len(prompt_ids):]
+        generated_ids = input_ids[0].tolist()[len(prompt_ids) :]
 
         # The model should NOT produce uniform random output.
         # An overfitted model will have low entropy in its output distribution.
@@ -345,9 +332,7 @@ class TestOverfitGeneration:
         from m31r.training.engine.experiment import create_experiment_dir
 
         config = _create_overfit_config(overfit_dir, max_steps=200)
-        experiment_dir = create_experiment_dir(
-            overfit_dir / "experiments", config, seed=SEED
-        )
+        experiment_dir = create_experiment_dir(overfit_dir / "experiments", config, seed=SEED)
 
         run_training(config, experiment_dir)
 
@@ -384,9 +369,9 @@ class TestOverfitGeneration:
                 next_token = logits[:, -1, :].argmax(dim=-1, keepdim=True)
                 input2 = torch.cat([input2, next_token], dim=1)
 
-        assert torch.equal(input1, input2), (
-            "Determinism violated: same weights + same input → different output"
-        )
+        assert torch.equal(
+            input1, input2
+        ), "Determinism violated: same weights + same input → different output"
 
 
 # ── Test: Training Determinism ────────────────────────────────────────
@@ -410,14 +395,11 @@ class TestOverfitDeterminism:
             (trial_dir / "experiments").mkdir(parents=True, exist_ok=True)
 
             config = _create_overfit_config(trial_dir, max_steps=50)
-            experiment_dir = create_experiment_dir(
-                trial_dir / "experiments", config, seed=SEED
-            )
+            experiment_dir = create_experiment_dir(trial_dir / "experiments", config, seed=SEED)
 
             result = run_training(config, experiment_dir)
             losses.append(result.final_loss)
 
         assert losses[0] == losses[1], (
-            f"Determinism violated: trial 0 loss={losses[0]:.6f}, "
-            f"trial 1 loss={losses[1]:.6f}"
+            f"Determinism violated: trial 0 loss={losses[0]:.6f}, " f"trial 1 loss={losses[1]:.6f}"
         )

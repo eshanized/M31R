@@ -31,7 +31,6 @@ from m31r.model.registry import (
     list_norm_types,
 )
 
-
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
 
@@ -407,6 +406,6 @@ class TestFullModel:
             final_loss = loss.item()
 
         # Loss must decrease — model can learn
-        assert final_loss < initial_loss, (
-            f"Loss did not decrease: {initial_loss:.4f} → {final_loss:.4f}"
-        )
+        assert (
+            final_loss < initial_loss
+        ), f"Loss did not decrease: {initial_loss:.4f} → {final_loss:.4f}"

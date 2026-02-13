@@ -38,7 +38,6 @@ import torch
 from m31r.config.schema import M31RConfig
 from m31r.model.transformer import M31RTransformer, TransformerModelConfig
 
-
 # ── Constants ─────────────────────────────────────────────────────────
 
 VOCAB_SIZE: int = 256
@@ -92,9 +91,7 @@ def _create_shard_dir(
         "num_shards": num_shards,
         "shards": shard_files,
     }
-    (path / "manifest.json").write_text(
-        json.dumps(manifest, indent=2), encoding="utf-8"
-    )
+    (path / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
 
 def _create_test_config(
@@ -186,9 +183,11 @@ class TestForwardPass:
         with torch.no_grad():
             logits = model(x)
 
-        assert logits.shape == (batch_size, seq_len, cfg.vocab_size), (
-            f"Expected ({batch_size}, {seq_len}, {cfg.vocab_size}), got {logits.shape}"
-        )
+        assert logits.shape == (
+            batch_size,
+            seq_len,
+            cfg.vocab_size,
+        ), f"Expected ({batch_size}, {seq_len}, {cfg.vocab_size}), got {logits.shape}"
 
     def test_forward_produces_finite_values(self) -> None:
         """Logits should not contain NaN or Inf."""
@@ -215,9 +214,7 @@ class TestLossDecreases:
         from m31r.training.engine.experiment import create_experiment_dir
 
         config = _create_test_config(tmp_pipeline_dir, max_steps=20, checkpoint_interval=10)
-        experiment_dir = create_experiment_dir(
-            tmp_pipeline_dir / "experiments", config, seed=SEED
-        )
+        experiment_dir = create_experiment_dir(tmp_pipeline_dir / "experiments", config, seed=SEED)
 
         result = run_training(config, experiment_dir)
 
@@ -232,9 +229,7 @@ class TestLossDecreases:
         from m31r.training.engine.experiment import create_experiment_dir
 
         config = _create_test_config(tmp_pipeline_dir, max_steps=30, checkpoint_interval=15)
-        experiment_dir = create_experiment_dir(
-            tmp_pipeline_dir / "experiments", config, seed=SEED
-        )
+        experiment_dir = create_experiment_dir(tmp_pipeline_dir / "experiments", config, seed=SEED)
 
         result = run_training(config, experiment_dir)
 
@@ -297,9 +292,9 @@ class TestCheckpoint:
 
         # Verify weights match
         for key in original_state:
-            assert torch.equal(original_state[key], fresh_model.state_dict()[key]), (
-                f"Weight mismatch at {key}"
-            )
+            assert torch.equal(
+                original_state[key], fresh_model.state_dict()[key]
+            ), f"Weight mismatch at {key}"
 
         # Verify metadata
         assert loaded_meta.global_step == 10
@@ -349,28 +344,20 @@ class TestResumeDeterminism:
         from m31r.training.engine.experiment import create_experiment_dir
 
         # Phase 1: Train for 10 steps
-        config = _create_test_config(
-            tmp_pipeline_dir, max_steps=10, checkpoint_interval=5
-        )
-        experiment_dir = create_experiment_dir(
-            tmp_pipeline_dir / "experiments", config, seed=SEED
-        )
+        config = _create_test_config(tmp_pipeline_dir, max_steps=10, checkpoint_interval=5)
+        experiment_dir = create_experiment_dir(tmp_pipeline_dir / "experiments", config, seed=SEED)
         result1 = run_training(config, experiment_dir)
         assert result1.final_step == 10
 
         # Phase 2: Resume and train to step 20
-        config2 = _create_test_config(
-            tmp_pipeline_dir, max_steps=20, checkpoint_interval=5
-        )
+        config2 = _create_test_config(tmp_pipeline_dir, max_steps=20, checkpoint_interval=5)
         checkpoint_dir = find_latest_checkpoint(experiment_dir)
         assert checkpoint_dir is not None, "Should find a checkpoint after training"
 
         result2 = run_training(config2, experiment_dir, resume_from=checkpoint_dir)
 
         # Should have continued from step 10 and reached step 20
-        assert result2.final_step == 20, (
-            f"Expected step 20 after resume, got {result2.final_step}"
-        )
+        assert result2.final_step == 20, f"Expected step 20 after resume, got {result2.final_step}"
 
 
 # ── Test: Export Creates Valid Bundle ─────────────────────────────────
@@ -386,9 +373,7 @@ class TestExport:
 
         # Train first
         config = _create_test_config(tmp_pipeline_dir, max_steps=10, checkpoint_interval=5)
-        experiment_dir = create_experiment_dir(
-            tmp_pipeline_dir / "experiments", config, seed=SEED
-        )
+        experiment_dir = create_experiment_dir(tmp_pipeline_dir / "experiments", config, seed=SEED)
         run_training(config, experiment_dir)
 
         # Find the checkpoint
@@ -430,9 +415,9 @@ class TestInference:
                 next_token = logits[:, -1, :].argmax(dim=-1, keepdim=True)
                 generated = torch.cat([generated, next_token], dim=1)
 
-        assert generated.shape[1] == 24, (
-            f"Expected 24 tokens (8 prompt + 16 generated), got {generated.shape[1]}"
-        )
+        assert (
+            generated.shape[1] == 24
+        ), f"Expected 24 tokens (8 prompt + 16 generated), got {generated.shape[1]}"
 
     def test_deterministic_generation(self) -> None:
         """Same seed + same input should produce identical output."""
@@ -472,12 +457,11 @@ class TestDataloader:
 
         batch_count = 0
         for input_batch, target_batch in loader:
-            assert input_batch.shape == (BATCH_SIZE, SEQ_LEN), (
-                f"Input shape: {input_batch.shape}"
-            )
-            assert target_batch.shape == (BATCH_SIZE, SEQ_LEN), (
-                f"Target shape: {target_batch.shape}"
-            )
+            assert input_batch.shape == (BATCH_SIZE, SEQ_LEN), f"Input shape: {input_batch.shape}"
+            assert target_batch.shape == (
+                BATCH_SIZE,
+                SEQ_LEN,
+            ), f"Target shape: {target_batch.shape}"
             batch_count += 1
             if batch_count >= 3:
                 break
@@ -516,9 +500,7 @@ class TestFullPipeline:
 
         # Train 10 steps
         config = _create_test_config(tmp_pipeline_dir, max_steps=10, checkpoint_interval=5)
-        experiment_dir = create_experiment_dir(
-            tmp_pipeline_dir / "experiments", config, seed=SEED
-        )
+        experiment_dir = create_experiment_dir(tmp_pipeline_dir / "experiments", config, seed=SEED)
         result = run_training(config, experiment_dir)
 
         assert result.final_step == 10
@@ -587,13 +569,11 @@ class TestConfigValidation:
     def test_tiny_config_has_correct_seed(self, tmp_pipeline_dir: Path) -> None:
         """Seed must be set to 42 for determinism."""
         config = _create_test_config(tmp_pipeline_dir)
-        assert config.global_config.seed == SEED, (
-            f"Expected seed {SEED}, got {config.global_config.seed}"
-        )
+        assert (
+            config.global_config.seed == SEED
+        ), f"Expected seed {SEED}, got {config.global_config.seed}"
 
     def test_tiny_config_cpu_precision(self, tmp_pipeline_dir: Path) -> None:
         """Training precision must be fp32 for CPU determinism."""
         config = _create_test_config(tmp_pipeline_dir)
-        assert config.train.precision == "fp32", (
-            f"Expected fp32, got {config.train.precision}"
-        )
+        assert config.train.precision == "fp32", f"Expected fp32, got {config.train.precision}"
