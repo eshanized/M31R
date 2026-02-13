@@ -1,0 +1,70 @@
+# M31R Combined Test Configuration
+# This config combines all necessary sections for testing
+
+global:
+  config_version: "1.0.0"
+  project_name: "m31r"
+  seed: 42
+  log_level: "INFO"
+  directories:
+    data: "data"
+    checkpoints: "checkpoints"
+    logs: "logs"
+    experiments: "experiments"
+    configs: "configs"
+
+model:
+  config_version: "1.0.0"
+  n_layers: 2
+  hidden_size: 128
+  n_heads: 4
+  head_dim: 32
+  context_length: 256
+  dropout: 0.0
+  norm_eps: 1.0e-6
+  rope_theta: 10000.0
+  init_std: 0.02
+  vocab_size: 256
+  mlp_type: "swiglu"
+  attention_type: "causal"
+  norm_type: "rmsnorm"
+
+train:
+  config_version: "1.0.0"
+  batch_size: 2
+  gradient_accumulation_steps: 1
+  max_steps: 5
+  learning_rate: 0.001
+  min_learning_rate: 0.0001
+  weight_decay: 0.01
+  beta1: 0.9
+  beta2: 0.95
+  grad_clip: 1.0
+  warmup_steps: 2
+  precision: "fp32"
+  checkpoint_interval: 10
+  log_interval: 1
+  dataset_directory: "data/datasets"
+  tokenizer_directory: "data/tokenizer"
+  fim_weight: 0.3
+  cot_weight: 0.2
+  fim_prob: 0.5
+  cot_prob: 0.3
+
+eval:
+  config_version: "1.0.0"
+  benchmark_directory: "benchmarks"
+  k_values: [1, 5, 10]
+  compile_timeout_seconds: 10
+  test_timeout_seconds: 10
+  seed: 42
+  max_workers: 1
+  output_directory: "experiments"
+
+runtime:
+  config_version: "1.0.0"
+  device: "cpu"
+  quantization: "none"
+  max_tokens: 128
+  temperature: 0.0
+  top_k: 0

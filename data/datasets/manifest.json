@@ -1,0 +1,9 @@
+{
+  "version": "test_v1",
+  "num_tokens": 25600,
+  "num_sequences": 100,
+  "vocab_size": 256,
+  "shards": [
+    "shard_000.bin"
+  ]
+}

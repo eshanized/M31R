@@ -121,15 +121,30 @@ class MetricsTracker:
 
     def _log_metrics(self, metrics: StepMetrics) -> None:
         """Emit structured log entry for training metrics."""
-        logger.info(
-            "Training step",
-            extra={
-                "step": metrics.step,
-                "loss": round(metrics.loss, 6),
-                "lr": metrics.learning_rate,
-                "grad_norm": round(metrics.grad_norm, 4),
-                "tokens_per_sec": round(metrics.tokens_per_sec, 1),
-                "memory_mb": round(metrics.memory_usage_mb, 1),
-                "tokens_seen": metrics.tokens_seen,
-            },
-        )
+        log_data = {
+            "step": metrics.step,
+            "loss": round(metrics.loss, 6),
+            "lr": metrics.learning_rate,
+            "grad_norm": round(metrics.grad_norm, 4),
+            "tokens_per_sec": round(metrics.tokens_per_sec, 1),
+            "memory_mb": round(metrics.memory_usage_mb, 1),
+            "tokens_seen": metrics.tokens_seen,
+        }
+
+        logger.info("Training step", extra=log_data)
+
+        # Broadcast to dashboard if available
+        try:
+            import asyncio
+            from m31r.dashboard import broadcast_metrics
+
+            # Run async broadcast in sync context
+            try:
+                loop = asyncio.get_running_loop()
+                asyncio.create_task(broadcast_metrics(log_data))
+            except RuntimeError:
+                # No event loop running, skip broadcast
+                pass
+        except ImportError:
+            # Dashboard not available
+            pass

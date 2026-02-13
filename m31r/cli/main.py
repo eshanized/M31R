@@ -40,6 +40,7 @@ from m31r.cli.commands import (
     handle_train,
     handle_verify,
 )
+from m31r.cli.dashboard_cmd import handle_dashboard
 from m31r.cli.exit_codes import USER_ERROR
 
 
@@ -107,6 +108,7 @@ def _register_subcommands(
         ("verify", "Validate artifact integrity.", handle_verify),
         ("clean", "Remove temporary files and caches.", handle_clean),
         ("info", "Display environment and config info.", handle_info),
+        ("dashboard", "Start training visualization dashboard.", handle_dashboard),
     ]
 
     for name, help_text, handler in commands:
@@ -278,6 +280,28 @@ def _register_subcommands(
         default=None,
         choices=["auto", "cpu", "cuda"],
         help="Override device selection.",
+    )
+
+    # Dashboard command args
+    dashboard_parser = subparsers.choices["dashboard"]
+    dashboard_parser.add_argument(
+        "--host",
+        type=str,
+        default="127.0.0.1",
+        help="Dashboard server bind address (default: 127.0.0.1).",
+    )
+    dashboard_parser.add_argument(
+        "--port",
+        type=int,
+        default=8080,
+        help="Dashboard server bind port (default: 8080).",
+    )
+    dashboard_parser.add_argument(
+        "--open",
+        action="store_true",
+        default=False,
+        dest="open",
+        help="Automatically open the dashboard in a web browser.",
     )
 
     _register_tokenizer_subcommands(subparsers, parent)

@@ -1,0 +1,23 @@
+{
+  "step": 5,
+  "loss": 4.440073013305664,
+  "seed": 42,
+  "tokens_seen": 2560,
+  "weights_sha256": "4eda129c86517f0872cbe9a833fdb39dfce61f867a2c337568c6e3a3c4d110fc",
+  "model_config": {
+    "config_version": "1.0.0",
+    "n_layers": 2,
+    "hidden_size": 128,
+    "n_heads": 4,
+    "head_dim": 32,
+    "context_length": 256,
+    "dropout": 0.0,
+    "norm_eps": 1e-06,
+    "rope_theta": 10000.0,
+    "init_std": 0.02,
+    "vocab_size": 256,
+    "mlp_type": "swiglu",
+    "attention_type": "causal",
+    "norm_type": "rmsnorm"
+  }
+}

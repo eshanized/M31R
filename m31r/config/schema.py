@@ -409,6 +409,28 @@ class TrainConfig(BaseModel):
         default="data/tokenizer",
         description="Path to tokenizer bundle directory, relative to project root",
     )
+    fim_weight: float = Field(
+        default=0.3,
+        ge=0.0,
+        description="Weight for Fill-in-the-Middle loss (alpha in spec §20)",
+    )
+    cot_weight: float = Field(
+        default=0.2,
+        ge=0.0,
+        description="Weight for Chain-of-Thought loss (beta in spec §20)",
+    )
+    fim_prob: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Probability of applying FIM transformation to a sequence",
+    )
+    cot_prob: float = Field(
+        default=0.3,
+        ge=0.0,
+        le=1.0,
+        description="Probability of applying CoT transformation to a sequence",
+    )
 
 
 class EvalConfig(BaseModel):

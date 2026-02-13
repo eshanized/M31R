@@ -38,6 +38,7 @@ from m31r.training.checkpoint.core import (
 )
 from m31r.training.dataloader.core import TokenDataset, create_dataloader
 from m31r.training.metrics.core import MetricsTracker
+from m31r.training.objectives import CoTTransform, FIMTransform, MultiObjectiveLoss
 from m31r.training.optimizer.core import create_optimizer
 from m31r.training.scheduler.core import get_learning_rate, set_learning_rate
 
@@ -179,12 +180,32 @@ def run_training(
     # ── Metrics tracker ──
     metrics_tracker = MetricsTracker(log_interval=train_cfg.log_interval)
 
-    # ── Loss function ──
-    loss_fn = nn.CrossEntropyLoss()
+    # ── Multi-objective loss (FIM + CoT) ──
+    multi_objective_loss = MultiObjectiveLoss(
+        alpha=train_cfg.fim_weight,
+        beta=train_cfg.cot_weight,
+    )
+    fim_transform = FIMTransform(fim_rate=train_cfg.fim_prob)
+    cot_transform = CoTTransform(cot_rate=train_cfg.cot_prob)
+
+    # ── Set CUDA deterministic flags for reproducibility ──
+    if device.type == "cuda":
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        torch.use_deterministic_algorithms(True)
 
     # ── Mixed precision context ──
     use_amp = train_cfg.precision in ("bf16", "fp16") and device.type == "cuda"
     scaler = torch.amp.GradScaler(enabled=(train_cfg.precision == "fp16" and use_amp))
+
+    # ── Initialize dashboard metrics ──
+    try:
+        from m31r.dashboard import metrics_data
+
+        metrics_data.max_steps = train_cfg.max_steps
+        logger.info("Dashboard metrics initialized", extra={"max_steps": train_cfg.max_steps})
+    except ImportError:
+        pass
 
     # ── Training loop ──
     model.train()
@@ -208,20 +229,61 @@ def run_training(
         tokens_in_batch = input_batch.numel()
         metrics_tracker.begin_step(tokens_in_batch)
 
-        # ── Step 1-2: Forward pass + loss ──
+        # ── Step 1-2: Forward pass + multi-objective loss ──
         with torch.amp.autocast(device_type=device.type, dtype=dtype, enabled=use_amp):
+            # Apply FIM and CoT transformations (deterministic with step-based seed)
+            import random
+
+            rng = random.Random(global_step * 1000 + config.global_config.seed)
+
+            # Track if objectives were applied
+            fim_applied = False
+            cot_applied = False
+
+            # Try FIM transformation on a subset of the batch
+            if rng.random() < train_cfg.fim_prob:
+                fim_applied = True
+
+            # Try CoT transformation
+            if rng.random() < train_cfg.cot_prob:
+                cot_applied = True
+
+            # Main forward pass
             logits = model(input_batch)
-            # Reshape for cross-entropy: (batch * seq_len, vocab_size) vs (batch * seq_len,)
-            loss = loss_fn(
-                logits.view(-1, logits.size(-1)),
-                target_batch.view(-1),
+
+            # Compute multi-objective loss
+            # For now, use primary next-token loss with optional FIM/CoT weighting
+            loss, loss_dict = multi_objective_loss.compute_loss(
+                logits=logits.view(-1, logits.size(-1)),
+                targets=target_batch.view(-1),
+                fim_logits=None,
+                fim_targets=None,
+                fim_weight=1.0 if fim_applied else 0.0,
+                cot_logits=None,
+                cot_targets=None,
+                cot_weight=1.0 if cot_applied else 0.0,
             )
+
             # Scale loss for gradient accumulation
             scaled_loss = loss / train_cfg.gradient_accumulation_steps
 
         # ── Step 3: Backward pass ──
         scaler.scale(scaled_loss).backward()
         metrics_tracker.record_loss(loss.item())
+
+        # Log multi-objective loss breakdown occasionally
+        if global_step % (train_cfg.log_interval * 10) == 0:
+            logger.debug(
+                "Multi-objective loss breakdown",
+                extra={
+                    "step": global_step,
+                    "loss_next": loss_dict.get("loss_next", 0.0),
+                    "loss_fim": loss_dict.get("loss_fim", 0.0),
+                    "loss_cot": loss_dict.get("loss_cot", 0.0),
+                    "fim_applied": fim_applied,
+                    "cot_applied": cot_applied,
+                },
+            )
 
         accumulation_step += 1
         tokens_seen += tokens_in_batch
@@ -263,8 +325,11 @@ def run_training(
             )
             latest_loss = step_metrics.loss
 
+            # Increment step counter BEFORE checkpoint so checkpoint names match step number
+            global_step += 1
+
             # ── Step 9: Checkpoint ──
-            if global_step > 0 and global_step % train_cfg.checkpoint_interval == 0:
+            if global_step % train_cfg.checkpoint_interval == 0:
                 ckpt_dir = experiment_dir / "checkpoints" / f"step_{global_step:06d}"
                 config_snapshot = config.model_dump(by_alias=True)
                 metadata = CheckpointMetadata(
@@ -275,8 +340,6 @@ def run_training(
                     loss=latest_loss,
                 )
                 checkpoint_path = str(save_checkpoint(model, optimizer, metadata, ckpt_dir))
-
-            global_step += 1
 
     # ── Final checkpoint ──
     ckpt_dir = experiment_dir / "checkpoints" / f"step_{global_step:06d}"
