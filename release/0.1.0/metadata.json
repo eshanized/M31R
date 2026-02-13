@@ -1,0 +1,12 @@
+{
+  "config_hash": "806dbc1c5fe5528dc5423a87ee05297b083986568454143b5eb1e2468a0315bf",
+  "dataset_hash": "unknown",
+  "git_commit": "0fb0310bda5f87b7e2dcb887b33991171d5a5a72",
+  "m31r_version": "0.1.0",
+  "metrics_summary": {},
+  "model_hash": "a5899fdc8df47fbd55ddb7df8039df1ee16ef50fdb792bce1750018f5a4f9c1c",
+  "timestamp": "2026-02-12T19:19:18.156725+00:00",
+  "tokenizer_hash": "ceb6434231cfb4874ede6195ccb9d7e2feeb8bb9c1fbb7fa287195fc99dad747",
+  "training_seed": 42,
+  "version": "0.1.0"
+}
