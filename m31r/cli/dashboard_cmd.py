@@ -50,12 +50,50 @@ def handle_dashboard(args: argparse.Namespace) -> int:
         host = getattr(args, "host", "127.0.0.1")
         port = getattr(args, "port", 8080)
 
+        # Locate log file to tail
+        from m31r.training.engine.experiment import find_experiment_dir
+        
+        # We need to resolve project root properly
+        from m31r.utils.paths import resolve_project_root
+        project_root = resolve_project_root()
+        
+        # Check experiments dir from config if available, else default
+        experiments_root = project_root / "experiments"
+        if config and config.global_config:
+             experiments_root = project_root / config.global_config.directories.experiments
+
+        run_id = getattr(args, "run_id", None)
+        experiment_dir = find_experiment_dir(experiments_root, run_id)
+        
+        log_file = None
+        if experiment_dir:
+            log_file = experiment_dir / "train.log"
+            logger.info("Found training log", extra={"path": str(log_file)})
+        else:
+            logger.warning("No experiment found to tail")
+
+        # Configure and start log tailer
+        from m31r.dashboard.server import log_tailer, broadcast_log
+        
+        if log_file:
+            log_tailer.log_file = log_file
+            # Start tailing in the background when app starts
+            # Since uvicorn.run blocks, we need to attach this to the app startup
+            @app.on_event("startup")
+            async def start_tailing():
+                await log_tailer.start(broadcast_log)
+                
+            @app.on_event("shutdown")
+            def stop_tailing():
+                log_tailer.stop()
+
         logger.info(
             "Starting dashboard server",
             extra={
                 "host": host,
                 "port": port,
                 "dry_run": args.dry_run,
+                "log_file": str(log_file) if log_file else None,
             },
         )
 

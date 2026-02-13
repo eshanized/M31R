@@ -127,245 +127,338 @@ def run_training(
     device = _select_device()
     dtype = _select_dtype(train_cfg.precision)
 
-    logger.info(
-        "Training setup",
-        extra={
-            "device": str(device),
-            "precision": train_cfg.precision,
-            "max_steps": train_cfg.max_steps,
-            "batch_size": train_cfg.batch_size,
-            "grad_accum": train_cfg.gradient_accumulation_steps,
-        },
-    )
-
-    # ── Build model ──
-    model_config = _build_model_config(config)
-    model = M31RTransformer(model_config)
-    model = model.to(device)
-
-    param_count = model.count_parameters()
-    logger.info(
-        "Model created",
-        extra={"parameters": param_count, "layers": model_config.n_layers},
-    )
-
-    # ── Build optimizer ──
-    optimizer = create_optimizer(model, train_cfg)
-
-    # ── Resume from checkpoint ──
-    global_step = 0
-    tokens_seen = 0
-    latest_loss = 0.0
-
-    if resume_from is not None:
-        metadata = load_checkpoint(resume_from, model, optimizer, device)
-        global_step = metadata.global_step
-        tokens_seen = metadata.tokens_seen
-        latest_loss = metadata.loss
+    # ── Setup experiment logging ──
+    # We attach a FileHandler to the m31r logger so all training logs
+    # (metrics, progress, etc) are written to train.log in the experiment dir.
+    # This file is what the dashboard tails.
+    # This file is what the dashboard tails.
+    log_file = experiment_dir / "train.log"
+    file_handler = logging.FileHandler(log_file, encoding="utf-8")
+    
+    # We should use the formatter from the current logger, which is properly configured
+    # by get_logger(). The 'm31r' root logger might not have handlers.
+    if logger.handlers:
+        file_handler.setFormatter(logger.handlers[0].formatter)
+    else:
+        # Fallback if somehow logger has no handlers (shouldn't happen after bootstrap)
+        from m31r.logging.logger import JsonFormatter
+        file_handler.setFormatter(JsonFormatter())
+    
+    # We attach to the 'm31r' root logger so we capture logs from ALL submodules
+    # (data, model, optimizer, etc), not just this module.
+    # But we need to ensure 'm31r' logger exists and catch things that propagate?
+    # Wait, m31r loggers have propagate=False.
+    # So attaching to 'm31r' won't help if children don't propagate!
+    # All modules use get_logger() which sets propagate=False.
+    # So we must attach the handler to specific loggers or change propagation.
+    # 
+    # Actually, if we want to capture ALL logs, we might need to iterate or 
+    # make them propagate. 
+    # BUT, for now, let's just attach to THIS logger so we capture at least 
+    # the training engine metrics.
+    # 
+    # Re-reading logger.py: "logger.propagate = False".
+    # This means logs don't go up to 'm31r'.
+    # So attaching to 'm31r' is useless for capturing child logs 
+    # unless we attach to those children.
+    # 
+    # However, training loop logs (metrics) are logged by *this* module (metrics.core and engine.core).
+    # metrics.core uses its own logger 'm31r.training.metrics.core'.
+    # This module uses 'm31r.training.engine.core'.
+    # 
+    # To capture all, we can attach to the root 'm31r' logger and FORCE propagation?
+    # Or just attach to every logger we care about?
+    # 
+    # Better approach for now: attach to the current logger (engine.core).
+    # METRICS are recorded in metrics/core.py which uses 'm31r.logging.logger'.
+    # If we want metrics in the file, we need metrics logger to write to it.
+    # 
+    # Let's attach the handler to the `m31r` logger AND set propagate=True on children? 
+    # No, that might duplicate stdout logs.
+    # 
+    # Alternative: The `get_logger` factory could look for a global log file setting?
+    # Bootstrap sets a global log file if config has it.
+    # `bootstrap.py`: `logger = get_logger(..., log_file=log_file)`.
+    # But that only affects the bootstrap logger!
+    # 
+    # Wait, `get_logger` takes `log_file`.
+    # But we can't easily retroactively change all loggers.
+    # 
+    # Let's just attach the handler to `logging.getLogger()` (root) and set propagate=True?
+    # No.
+    # 
+    # Let's attach to `logger` (this module) and optionally `metrics` logger.
+    # The dashboard mainly needs metrics.
+    # `metrics_tracker` in this file calls `metrics_tracker.end_step` which calls `_log_metrics`.
+    # `_log_metrics` uses a module-level logger in `metrics/core.py`.
+    # 
+    # So we need to attach the handler to `m31r.training.metrics.core` logger as well.
+    # 
+    # Let's do that.
+    
+    root_logger = logging.getLogger("m31r")
+    # root_logger.addHandler(file_handler) # This was the bug source if root has no handlers?
+    # No, adding handler is fine. Accessing handlers[0] was the bug.
+    
+    # Ensure we capture metrics
+    metrics_logger = logging.getLogger("m31r.training.metrics.core")
+    metrics_logger.addHandler(file_handler)
+    
+    # And this module's logger
+    logger.addHandler(file_handler)
+    
+    # And maybe the root for good measure if we can safely format it
+    # But 'm31r' logger receives nothing because of propagate=False in children.
+    
+    # Okay, plan: Attach to 'm31r.training.metrics.core' and 'm31r.training.engine.core' (logger).
+    
+    try:
         logger.info(
-            "Resumed from checkpoint",
-            extra={"step": global_step, "tokens_seen": tokens_seen},
+            "Training setup",
+            extra={
+                "device": str(device),
+                "precision": train_cfg.precision,
+                "max_steps": train_cfg.max_steps,
+                "batch_size": train_cfg.batch_size,
+                "grad_accum": train_cfg.gradient_accumulation_steps,
+                "log_file": str(log_file),
+            },
         )
 
-    # ── Build dataloader ──
-    project_root = experiment_dir.parent.parent  # experiments/<run>/.. = project root
-    shard_dir = project_root / train_cfg.dataset_directory
-    dataset = TokenDataset(
-        shard_dir=shard_dir,
-        seq_len=model_config.max_seq_len,
-        seed=config.global_config.seed,
-        start_offset=tokens_seen // model_config.max_seq_len if tokens_seen > 0 else 0,
-    )
+        # ── Build model ──
+        model_config = _build_model_config(config)
+        model = M31RTransformer(model_config)
+        model = model.to(device)
 
-    # ── Metrics tracker ──
-    metrics_tracker = MetricsTracker(log_interval=train_cfg.log_interval)
+        param_count = model.count_parameters()
+        logger.info(
+            "Model created",
+            extra={"parameters": param_count, "layers": model_config.n_layers},
+        )
 
-    # ── Multi-objective loss (FIM + CoT) ──
-    multi_objective_loss = MultiObjectiveLoss(
-        alpha=train_cfg.fim_weight,
-        beta=train_cfg.cot_weight,
-    )
-    fim_transform = FIMTransform(fim_rate=train_cfg.fim_prob)
-    cot_transform = CoTTransform(cot_rate=train_cfg.cot_prob)
+        # ── Build optimizer ──
+        optimizer = create_optimizer(model, train_cfg)
 
-    # ── Set CUDA deterministic flags for reproducibility ──
-    if device.type == "cuda":
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-        torch.use_deterministic_algorithms(True)
+        # ── Resume from checkpoint ──
+        global_step = 0
+        tokens_seen = 0
+        latest_loss = 0.0
 
-    # ── Mixed precision context ──
-    use_amp = train_cfg.precision in ("bf16", "fp16") and device.type == "cuda"
-    scaler = torch.amp.GradScaler(enabled=(train_cfg.precision == "fp16" and use_amp))
-
-    # ── Initialize dashboard metrics ──
-    try:
-        from m31r.dashboard import metrics_data
-
-        metrics_data.max_steps = train_cfg.max_steps
-        logger.info("Dashboard metrics initialized", extra={"max_steps": train_cfg.max_steps})
-    except ImportError:
-        pass
-
-    # ── Training loop ──
-    model.train()
-    optimizer.zero_grad()
-    accumulation_step = 0
-    checkpoint_path = ""
-
-    dataloader: Iterator[tuple[torch.Tensor, torch.Tensor]] = create_dataloader(
-        dataset,
-        train_cfg.batch_size,
-        seed=config.global_config.seed,
-    )
-
-    for input_batch, target_batch in dataloader:
-        if global_step >= train_cfg.max_steps:
-            break
-
-        input_batch = input_batch.to(device)
-        target_batch = target_batch.to(device)
-
-        tokens_in_batch = input_batch.numel()
-        metrics_tracker.begin_step(tokens_in_batch)
-
-        # ── Step 1-2: Forward pass + multi-objective loss ──
-        with torch.amp.autocast(device_type=device.type, dtype=dtype, enabled=use_amp):
-            # Apply FIM and CoT transformations (deterministic with step-based seed)
-            import random
-
-            rng = random.Random(global_step * 1000 + config.global_config.seed)
-
-            # Track if objectives were applied
-            fim_applied = False
-            cot_applied = False
-
-            # Try FIM transformation on a subset of the batch
-            if rng.random() < train_cfg.fim_prob:
-                fim_applied = True
-
-            # Try CoT transformation
-            if rng.random() < train_cfg.cot_prob:
-                cot_applied = True
-
-            # Main forward pass
-            logits = model(input_batch)
-
-            # Compute multi-objective loss
-            # For now, use primary next-token loss with optional FIM/CoT weighting
-            loss, loss_dict = multi_objective_loss.compute_loss(
-                logits=logits.view(-1, logits.size(-1)),
-                targets=target_batch.view(-1),
-                fim_logits=None,
-                fim_targets=None,
-                fim_weight=1.0 if fim_applied else 0.0,
-                cot_logits=None,
-                cot_targets=None,
-                cot_weight=1.0 if cot_applied else 0.0,
+        if resume_from is not None:
+            metadata = load_checkpoint(resume_from, model, optimizer, device)
+            global_step = metadata.global_step
+            tokens_seen = metadata.tokens_seen
+            latest_loss = metadata.loss
+            logger.info(
+                "Resumed from checkpoint",
+                extra={"step": global_step, "tokens_seen": tokens_seen},
             )
 
-            # Scale loss for gradient accumulation
-            scaled_loss = loss / train_cfg.gradient_accumulation_steps
+        # ── Build dataloader ──
+        project_root = experiment_dir.parent.parent  # experiments/<run>/.. = project root
+        shard_dir = project_root / train_cfg.dataset_directory
+        dataset = TokenDataset(
+            shard_dir=shard_dir,
+            seq_len=model_config.max_seq_len,
+            seed=config.global_config.seed,
+            start_offset=tokens_seen // model_config.max_seq_len if tokens_seen > 0 else 0,
+        )
 
-        # ── Step 3: Backward pass ──
-        scaler.scale(scaled_loss).backward()
-        metrics_tracker.record_loss(loss.item())
+        # ── Metrics tracker ──
+        metrics_tracker = MetricsTracker(log_interval=train_cfg.log_interval)
 
-        # Log multi-objective loss breakdown occasionally
-        if global_step % (train_cfg.log_interval * 10) == 0:
-            logger.debug(
-                "Multi-objective loss breakdown",
-                extra={
-                    "step": global_step,
-                    "loss_next": loss_dict.get("loss_next", 0.0),
-                    "loss_fim": loss_dict.get("loss_fim", 0.0),
-                    "loss_cot": loss_dict.get("loss_cot", 0.0),
-                    "fim_applied": fim_applied,
-                    "cot_applied": cot_applied,
-                },
-            )
+        # ── Multi-objective loss (FIM + CoT) ──
+        multi_objective_loss = MultiObjectiveLoss(
+            alpha=train_cfg.fim_weight,
+            beta=train_cfg.cot_weight,
+        )
+        fim_transform = FIMTransform(fim_rate=train_cfg.fim_prob)
+        cot_transform = CoTTransform(cot_rate=train_cfg.cot_prob)
 
-        accumulation_step += 1
-        tokens_seen += tokens_in_batch
+        # ── Set CUDA deterministic flags for reproducibility ──
+        if device.type == "cuda":
+            torch.backends.cudnn.deterministic = True
+            torch.backends.cudnn.benchmark = False
+            torch.use_deterministic_algorithms(True)
 
-        # ── Steps 4-7: Gradient clipping + optimizer step (after full accumulation) ──
-        if accumulation_step % train_cfg.gradient_accumulation_steps == 0:
-            # Unscale before clipping
-            scaler.unscale_(optimizer)
+        # ── Mixed precision context ──
+        use_amp = train_cfg.precision in ("bf16", "fp16") and device.type == "cuda"
+        scaler = torch.amp.GradScaler(enabled=(train_cfg.precision == "fp16" and use_amp))
 
-            # Step 4: Gradient clipping
-            grad_norm = torch.nn.utils.clip_grad_norm_(
-                model.parameters(),
-                train_cfg.grad_clip,
-            ).item()
+        # ── Initialize dashboard metrics ──
+        try:
+            from m31r.dashboard import metrics_data
 
-            # Step 5: Optimizer step
-            scaler.step(optimizer)
-            scaler.update()
+            metrics_data.max_steps = train_cfg.max_steps
+            logger.info("Dashboard metrics initialized", extra={"max_steps": train_cfg.max_steps})
+        except ImportError:
+            pass
 
-            # Step 6: Zero gradients
-            optimizer.zero_grad()
+        # ── Training loop ──
+        model.train()
+        optimizer.zero_grad()
+        accumulation_step = 0
+        checkpoint_path = ""
 
-            # Step 7: Update learning rate
-            lr = get_learning_rate(
-                step=global_step,
-                max_lr=train_cfg.learning_rate,
-                min_lr=train_cfg.min_learning_rate,
-                warmup_steps=train_cfg.warmup_steps,
-                max_steps=train_cfg.max_steps,
-            )
-            set_learning_rate(optimizer, lr)
+        dataloader: Iterator[tuple[torch.Tensor, torch.Tensor]] = create_dataloader(
+            dataset,
+            train_cfg.batch_size,
+            seed=config.global_config.seed,
+        )
 
-            # ── Step 8: Log metrics ──
-            step_metrics = metrics_tracker.end_step(
-                step=global_step,
-                learning_rate=lr,
-                grad_norm=grad_norm,
-                tokens_seen=tokens_seen,
-            )
-            latest_loss = step_metrics.loss
+        for input_batch, target_batch in dataloader:
+            if global_step >= train_cfg.max_steps:
+                break
 
-            # Increment step counter BEFORE checkpoint so checkpoint names match step number
-            global_step += 1
+            input_batch = input_batch.to(device)
+            target_batch = target_batch.to(device)
 
-            # ── Step 9: Checkpoint ──
-            if global_step % train_cfg.checkpoint_interval == 0:
-                ckpt_dir = experiment_dir / "checkpoints" / f"step_{global_step:06d}"
-                config_snapshot = config.model_dump(by_alias=True)
-                metadata = CheckpointMetadata(
-                    global_step=global_step,
-                    seed=config.global_config.seed,
-                    config_snapshot=config_snapshot,
-                    tokens_seen=tokens_seen,
-                    loss=latest_loss,
+            tokens_in_batch = input_batch.numel()
+            metrics_tracker.begin_step(tokens_in_batch)
+
+            # ── Step 1-2: Forward pass + multi-objective loss ──
+            with torch.amp.autocast(device_type=device.type, dtype=dtype, enabled=use_amp):
+                # Apply FIM and CoT transformations (deterministic with step-based seed)
+                import random
+
+                rng = random.Random(global_step * 1000 + config.global_config.seed)
+
+                # Track if objectives were applied
+                fim_applied = False
+                cot_applied = False
+
+                # Try FIM transformation on a subset of the batch
+                if rng.random() < train_cfg.fim_prob:
+                    fim_applied = True
+
+                # Try CoT transformation
+                if rng.random() < train_cfg.cot_prob:
+                    cot_applied = True
+
+                # Main forward pass
+                logits = model(input_batch)
+
+                # Compute multi-objective loss
+                # For now, use primary next-token loss with optional FIM/CoT weighting
+                loss, loss_dict = multi_objective_loss.compute_loss(
+                    logits=logits.view(-1, logits.size(-1)),
+                    targets=target_batch.view(-1),
+                    fim_logits=None,
+                    fim_targets=None,
+                    fim_weight=1.0 if fim_applied else 0.0,
+                    cot_logits=None,
+                    cot_targets=None,
+                    cot_weight=1.0 if cot_applied else 0.0,
                 )
-                checkpoint_path = str(save_checkpoint(model, optimizer, metadata, ckpt_dir))
 
-    # ── Final checkpoint ──
-    ckpt_dir = experiment_dir / "checkpoints" / f"step_{global_step:06d}"
-    config_snapshot = config.model_dump(by_alias=True)
-    metadata = CheckpointMetadata(
-        global_step=global_step,
-        seed=config.global_config.seed,
-        config_snapshot=config_snapshot,
-        tokens_seen=tokens_seen,
-        loss=latest_loss,
-    )
-    checkpoint_path = str(save_checkpoint(model, optimizer, metadata, ckpt_dir))
+                # Scale loss for gradient accumulation
+                scaled_loss = loss / train_cfg.gradient_accumulation_steps
 
-    logger.info(
-        "Training complete",
-        extra={
-            "final_step": global_step,
-            "final_loss": latest_loss,
-            "total_tokens": tokens_seen,
-        },
-    )
+            # ── Step 3: Backward pass ──
+            scaler.scale(scaled_loss).backward()
+            metrics_tracker.record_loss(loss.item())
 
-    return TrainingResult(
-        final_step=global_step,
-        final_loss=latest_loss,
-        total_tokens=tokens_seen,
-        experiment_dir=str(experiment_dir),
-        checkpoint_path=checkpoint_path,
-    )
+            # Log multi-objective loss breakdown occasionally
+            if global_step % (train_cfg.log_interval * 10) == 0:
+                logger.debug(
+                    "Multi-objective loss breakdown",
+                    extra={
+                        "step": global_step,
+                        "loss_next": loss_dict.get("loss_next", 0.0),
+                        "loss_fim": loss_dict.get("loss_fim", 0.0),
+                        "loss_cot": loss_dict.get("loss_cot", 0.0),
+                        "fim_applied": fim_applied,
+                        "cot_applied": cot_applied,
+                    },
+                )
+
+            accumulation_step += 1
+            tokens_seen += tokens_in_batch
+
+            # ── Steps 4-7: Gradient clipping + optimizer step (after full accumulation) ──
+            if accumulation_step % train_cfg.gradient_accumulation_steps == 0:
+                # Unscale before clipping
+                scaler.unscale_(optimizer)
+
+                # Step 4: Gradient clipping
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    model.parameters(),
+                    train_cfg.grad_clip,
+                ).item()
+
+                # Step 5: Optimizer step
+                scaler.step(optimizer)
+                scaler.update()
+
+                # Step 6: Zero gradients
+                optimizer.zero_grad()
+
+                # Step 7: Update learning rate
+                lr = get_learning_rate(
+                    step=global_step,
+                    max_lr=train_cfg.learning_rate,
+                    min_lr=train_cfg.min_learning_rate,
+                    warmup_steps=train_cfg.warmup_steps,
+                    max_steps=train_cfg.max_steps,
+                )
+                set_learning_rate(optimizer, lr)
+
+                # ── Step 8: Log metrics ──
+                step_metrics = metrics_tracker.end_step(
+                    step=global_step,
+                    learning_rate=lr,
+                    grad_norm=grad_norm,
+                    tokens_seen=tokens_seen,
+                )
+                latest_loss = step_metrics.loss
+
+                # Increment step counter BEFORE checkpoint so checkpoint names match step number
+                global_step += 1
+
+                # ── Step 9: Checkpoint ──
+                if global_step % train_cfg.checkpoint_interval == 0:
+                    ckpt_dir = experiment_dir / "checkpoints" / f"step_{global_step:06d}"
+                    config_snapshot = config.model_dump(by_alias=True)
+                    metadata = CheckpointMetadata(
+                        global_step=global_step,
+                        seed=config.global_config.seed,
+                        config_snapshot=config_snapshot,
+                        tokens_seen=tokens_seen,
+                        loss=latest_loss,
+                    )
+                    checkpoint_path = str(save_checkpoint(model, optimizer, metadata, ckpt_dir))
+
+        # ── Final checkpoint ──
+        ckpt_dir = experiment_dir / "checkpoints" / f"step_{global_step:06d}"
+        config_snapshot = config.model_dump(by_alias=True)
+        metadata = CheckpointMetadata(
+            global_step=global_step,
+            seed=config.global_config.seed,
+            config_snapshot=config_snapshot,
+            tokens_seen=tokens_seen,
+            loss=latest_loss,
+        )
+        checkpoint_path = str(save_checkpoint(model, optimizer, metadata, ckpt_dir))
+
+        logger.info(
+            "Training complete",
+            extra={
+                "final_step": global_step,
+                "final_loss": latest_loss,
+                "total_tokens": tokens_seen,
+            },
+        )
+
+        return TrainingResult(
+            final_step=global_step,
+            final_loss=latest_loss,
+            total_tokens=tokens_seen,
+            experiment_dir=str(experiment_dir),
+            checkpoint_path=checkpoint_path,
+        )
+    finally:
+        # Cleanup: remove the file handler so we don't leak it
+        if "metrics_logger" in locals():
+            metrics_logger.removeHandler(file_handler)
+        logger.removeHandler(file_handler)
+        file_handler.close()

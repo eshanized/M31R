@@ -191,13 +191,46 @@ class LogTailer:
 
     async def _tail_loop(self, callback: callable) -> None:
         """Main tailing loop."""
+        if not self.log_file or not self.log_file.exists():
+            # Wait for file to appear
+            while self._running and (not self.log_file or not self.log_file.exists()):
+                await asyncio.sleep(1)
+        
         if not self.log_file:
             return
 
-        # For now, just watch for new log entries from stdout
-        # In production, this would tail an actual log file
-        while self._running:
-            await asyncio.sleep(1)
+        try:
+            with open(self.log_file, "r", encoding="utf-8") as f:
+                # Go to end of file to tail new entries
+                # f.seek(0, 2)
+                # Actually, for the dashboard we might want to read from start to catch up
+                # if we started late. Let's read from start.
+                f.seek(0, 0)
+                
+                while self._running:
+                    line = f.readline()
+                    if not line:
+                        await asyncio.sleep(0.1)
+                        continue
+                        
+                    try:
+                        entry = json.loads(line)
+                        # Enrich with metrics if present
+                        if "loss" in entry and "step" in entry:
+                            metrics_data.add_step(entry)
+                        
+                        # Add to log buffer
+                        self.add_log_entry(entry)
+                        
+                        # Broadcast
+                        if callback:
+                            await callback(entry)
+                            
+                    except json.JSONDecodeError:
+                        continue
+                        
+        except Exception as e:
+            logger.error(f"Tail loop failed: {e}")
 
     def stop(self) -> None:
         """Stop tailing."""
